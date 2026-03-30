@@ -1,0 +1,68 @@
+# Cross-Site Generalization
+
+- Model: hgb
+- Feature set: enhanced
+- Utility: official
+- Alert k: 1
+- Patient normalization: True
+- Target calibration: none
+
+## Train A -> Test B
+{
+  "metrics": {
+    "auroc": 0.9674297110542394,
+    "auprc": 0.4928810788109229
+  },
+  "patient_level_metrics": {
+    "auroc": 0.9130819439746847,
+    "auprc": 0.564823757891766
+  },
+  "best_threshold": 0.1,
+  "utility_score": 0.5923821933347657,
+  "utility_kind": "official",
+  "alert_k": 1,
+  "official_utility": 0.5923821933347657,
+  "custom_utility": -0.03286499999999991,
+  "accuracy": 0.9792636434622275,
+  "f_measure": 0.48058906676309127,
+  "early_warning": {
+    "early_detection_rate": 0.6129597197898424,
+    "false_alert_rate": 0.10573761798706119,
+    "median_lead_time_hours": 0.0
+  },
+  "test_patients": 20000,
+  "calibration": {
+    "method": "none",
+    "patients": 0
+  }
+}
+
+## Train B -> Test A
+{
+  "metrics": {
+    "auroc": 0.9653172989116897,
+    "auprc": 0.526373457710796
+  },
+  "patient_level_metrics": {
+    "auroc": 0.8929945742640826,
+    "auprc": 0.5952219357089654
+  },
+  "best_threshold": 0.1,
+  "utility_score": 0.6271723783119453,
+  "utility_kind": "official",
+  "alert_k": 1,
+  "official_utility": 0.6271723783119453,
+  "custom_utility": -0.07828973249409953,
+  "accuracy": 0.9591870566871041,
+  "f_measure": 0.4337857055074703,
+  "early_warning": {
+    "early_detection_rate": 0.5782122905027933,
+    "false_alert_rate": 0.2794133505877278,
+    "median_lead_time_hours": 0.0
+  },
+  "test_patients": 20336,
+  "calibration": {
+    "method": "none",
+    "patients": 0
+  }
+}

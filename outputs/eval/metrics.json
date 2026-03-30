@@ -1,0 +1,38 @@
+{
+  "metrics": {
+    "auroc": 0.8869360684344759,
+    "auprc": 0.20874090883006205
+  },
+  "patient_level_metrics": {
+    "auroc": 0.9320388349514562,
+    "auprc": 0.7076923076923077
+  },
+  "brier_score": 0.05695787295554808,
+  "brier_score_raw": 0.016374682967111896,
+  "best_threshold": 0.1,
+  "utility_score": 0.4845955249569708,
+  "utility_kind": "official",
+  "alert_k": 1,
+  "official_utility": 0.4845955249569708,
+  "custom_utility": 0.009909909909909911,
+  "accuracy": 0.9022556390977443,
+  "f_measure": 0.1859582542694497,
+  "early_warning": {
+    "early_detection_rate": 0.75,
+    "false_alert_rate": 0.10679611650485436,
+    "median_lead_time_hours": 22.0
+  },
+  "alert_burden": {
+    "alerts_per_patient_day": 2.4661654135338336,
+    "alerts_per_nonsepsis_patient_day": 0.38855909336211536,
+    "mean_alerts_per_patient": 4.063063063063063
+  },
+  "feature_set": "enhanced",
+  "max_patients": 500,
+  "calibration": {
+    "method": "sigmoid",
+    "patients": 38,
+    "fraction": 0.1,
+    "max_patients": 200
+  }
+}

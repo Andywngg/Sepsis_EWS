@@ -1,0 +1,27 @@
+{
+  "drop_rate": 0.2,
+  "metrics": {
+    "auroc": 0.8473532258141844,
+    "auprc": 0.1287555929275187
+  },
+  "patient_level_metrics": {
+    "auroc": 0.876328116918621,
+    "auprc": 0.4534919897651653
+  },
+  "brier_score": 0.016994506774203683,
+  "official_utility": 0.2820327530383371,
+  "early_warning": {
+    "early_detection_rate": 0.4246575342465753,
+    "false_alert_rate": 0.07659115426105717,
+    "median_lead_time_hours": 18.0
+  },
+  "alert_burden": {
+    "alerts_per_patient_day": 1.2565412441978068,
+    "alerts_per_nonsepsis_patient_day": 0.3377992403050559,
+    "mean_alerts_per_patient": 2.019
+  },
+  "threshold": 0.1,
+  "feature_set": "enhanced",
+  "patient_normalize": false,
+  "patients": 1000
+}

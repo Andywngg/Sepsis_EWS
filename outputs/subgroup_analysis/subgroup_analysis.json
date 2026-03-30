@@ -1,0 +1,246 @@
+{
+  "overall": {
+    "metrics": {
+      "auroc": 0.877229920557481,
+      "auprc": 0.14407578261184595
+    },
+    "patient_level_metrics": {
+      "auroc": 0.8839324116743471,
+      "auprc": 0.4931473800464193
+    },
+    "official_utility": 0.3093901354156371,
+    "early_warning": {
+      "early_detection_rate": 0.4857142857142857,
+      "false_alert_rate": 0.06236559139784946,
+      "median_lead_time_hours": 25.0
+    },
+    "alert_burden": {
+      "alerts_per_patient_day": 1.439635535307518,
+      "alerts_per_nonsepsis_patient_day": 0.3825925063998139,
+      "mean_alerts_per_patient": 2.37
+    },
+    "patients": 500,
+    "rows": 19755
+  },
+  "groups": {
+    "age": {
+      "age_40_59": {
+        "metrics": {
+          "auroc": 0.906811589643565,
+          "auprc": 0.29429026423864596
+        },
+        "patient_level_metrics": {
+          "auroc": 0.916023166023166,
+          "auprc": 0.6268946253884141
+        },
+        "official_utility": 0.34096149129261716,
+        "early_warning": {
+          "early_detection_rate": 0.42857142857142855,
+          "false_alert_rate": 0.0472972972972973,
+          "median_lead_time_hours": 23.0
+        },
+        "alert_burden": {
+          "alerts_per_patient_day": 0.8605108055009826,
+          "alerts_per_nonsepsis_patient_day": 0.2602842183994018,
+          "mean_alerts_per_patient": 1.3518518518518519
+        },
+        "patients": 162,
+        "rows": 6108
+      },
+      "age_60_79": {
+        "metrics": {
+          "auroc": 0.8847113256727723,
+          "auprc": 0.10125180966763861
+        },
+        "patient_level_metrics": {
+          "auroc": 0.8785829307568438,
+          "auprc": 0.37133375009923
+        },
+        "official_utility": 0.2772800738859385,
+        "early_warning": {
+          "early_detection_rate": 0.5333333333333333,
+          "false_alert_rate": 0.06763285024154589,
+          "median_lead_time_hours": 23.0
+        },
+        "alert_burden": {
+          "alerts_per_patient_day": 1.2630155510480054,
+          "alerts_per_nonsepsis_patient_day": 0.4197434900893898,
+          "mean_alerts_per_patient": 2.1036036036036037
+        },
+        "patients": 222,
+        "rows": 8874
+      },
+      "age_ge80": {
+        "metrics": {
+          "auroc": 0.804736,
+          "auprc": 0.23307830275134755
+        },
+        "patient_level_metrics": {
+          "auroc": 0.7675438596491228,
+          "auprc": 0.4636752136752137
+        },
+        "official_utility": 0.2144262295081968,
+        "early_warning": {
+          "early_detection_rate": 0.3333333333333333,
+          "false_alert_rate": 0.07894736842105263,
+          "median_lead_time_hours": 72.0
+        },
+        "alert_burden": {
+          "alerts_per_patient_day": 1.4377179080824092,
+          "alerts_per_nonsepsis_patient_day": 0.5539097485359973,
+          "mean_alerts_per_patient": 2.392405063291139
+        },
+        "patients": 79,
+        "rows": 3155
+      },
+      "age_lt40": {
+        "metrics": {
+          "auroc": 0.8533417138068301,
+          "auprc": 0.07181110346856848
+        },
+        "patient_level_metrics": {
+          "auroc": 0.9019607843137254,
+          "auprc": 0.7435897435897436
+        },
+        "official_utility": 0.4318639798488665,
+        "early_warning": {
+          "early_detection_rate": 0.6666666666666666,
+          "false_alert_rate": 0.058823529411764705,
+          "median_lead_time_hours": 157.5
+        },
+        "alert_burden": {
+          "alerts_per_patient_day": 4.5982694684796055,
+          "alerts_per_nonsepsis_patient_day": 0.2758620689655173,
+          "mean_alerts_per_patient": 8.378378378378379
+        },
+        "patients": 37,
+        "rows": 1618
+      }
+    },
+    "gender": {
+      "gender_0": {
+        "metrics": {
+          "auroc": 0.8615127751075132,
+          "auprc": 0.1232951464908521
+        },
+        "patient_level_metrics": {
+          "auroc": 0.8422090729783037,
+          "auprc": 0.4543006036237823
+        },
+        "official_utility": 0.2483579001810189,
+        "early_warning": {
+          "early_detection_rate": 0.38461538461538464,
+          "false_alert_rate": 0.041025641025641026,
+          "median_lead_time_hours": 17.5
+        },
+        "alert_burden": {
+          "alerts_per_patient_day": 1.0579006350392228,
+          "alerts_per_nonsepsis_patient_day": 0.2093892812629829,
+          "mean_alerts_per_patient": 1.7019230769230769
+        },
+        "patients": 208,
+        "rows": 8031
+      },
+      "gender_1": {
+        "metrics": {
+          "auroc": 0.8894371227746088,
+          "auprc": 0.16050647110353472
+        },
+        "patient_level_metrics": {
+          "auroc": 0.908080808080808,
+          "auprc": 0.5339536303350879
+        },
+        "official_utility": 0.347152,
+        "early_warning": {
+          "early_detection_rate": 0.5454545454545454,
+          "false_alert_rate": 0.07777777777777778,
+          "median_lead_time_hours": 47.5
+        },
+        "alert_burden": {
+          "alerts_per_patient_day": 1.701125895598771,
+          "alerts_per_nonsepsis_patient_day": 0.5080766529547505,
+          "mean_alerts_per_patient": 2.845890410958904
+        },
+        "patients": 292,
+        "rows": 11724
+      }
+    },
+    "unit": {
+      "unit1": {
+        "metrics": {
+          "auroc": 0.8899755206178458,
+          "auprc": 0.14501403785438505
+        },
+        "patient_level_metrics": {
+          "auroc": 0.882943143812709,
+          "auprc": 0.5869173671968704
+        },
+        "official_utility": 0.3777350192413414,
+        "early_warning": {
+          "early_detection_rate": 0.5384615384615384,
+          "false_alert_rate": 0.06956521739130435,
+          "median_lead_time_hours": 25.0
+        },
+        "alert_burden": {
+          "alerts_per_patient_day": 1.584174404521599,
+          "alerts_per_nonsepsis_patient_day": 0.45250181290790414,
+          "mean_alerts_per_patient": 2.5546875
+        },
+        "patients": 128,
+        "rows": 4954
+      },
+      "unit2": {
+        "metrics": {
+          "auroc": 0.8716175957486781,
+          "auprc": 0.05847642858483493
+        },
+        "patient_level_metrics": {
+          "auroc": 0.7769784172661871,
+          "auprc": 0.18399122807017543
+        },
+        "official_utility": 0.20699999999999996,
+        "early_warning": {
+          "early_detection_rate": 0.25,
+          "false_alert_rate": 0.02877697841726619,
+          "median_lead_time_hours": 34.0
+        },
+        "alert_burden": {
+          "alerts_per_patient_day": 0.34069400630914826,
+          "alerts_per_nonsepsis_patient_day": 0.14129110840438489,
+          "mean_alerts_per_patient": 0.5034965034965035
+        },
+        "patients": 143,
+        "rows": 5072
+      },
+      "unit_unknown": {
+        "metrics": {
+          "auroc": 0.858493375998086,
+          "auprc": 0.17302709047747375
+        },
+        "patient_level_metrics": {
+          "auroc": 0.8991574512901527,
+          "auprc": 0.5467869731555067
+        },
+        "official_utility": 0.2841048522030117,
+        "early_warning": {
+          "early_detection_rate": 0.5,
+          "false_alert_rate": 0.08056872037914692,
+          "median_lead_time_hours": 23.0
+        },
+        "alert_burden": {
+          "alerts_per_patient_day": 1.9389454209065675,
+          "alerts_per_nonsepsis_patient_day": 0.4932923076923076,
+          "mean_alerts_per_patient": 3.432314410480349
+        },
+        "patients": 229,
+        "rows": 9729
+      }
+    }
+  },
+  "threshold": 0.1,
+  "alert_k": 1,
+  "feature_set": "enhanced",
+  "max_patients": 500,
+  "patient_normalize": false,
+  "split_source": "test_patients.json"
+}

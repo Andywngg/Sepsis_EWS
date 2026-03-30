@@ -1,0 +1,16 @@
+{
+  "method": "sigmoid",
+  "cal_fraction": 0.1,
+  "cal_patients": 16.0,
+  "max_patients": "200",
+  "auroc": 0.9962355067007981,
+  "auprc": 0.8729401858336105,
+  "patient_auroc": 1.0,
+  "patient_auprc": 1.0,
+  "brier": 0.011076385128669295,
+  "brier_raw": 0.007930034486533354,
+  "best_threshold": 0.1,
+  "utility": 0.9656250000000001,
+  "official_utility": 0.9656250000000001,
+  "custom_utility": 0.065
+}

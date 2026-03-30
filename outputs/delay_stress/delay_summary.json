@@ -1,0 +1,112 @@
+{
+    "rows":  [
+                 {
+                     "delay_hours":  0,
+                     "metrics":  {
+                                     "auroc":  0.8469531472177367,
+                                     "auprc":  0.12761661777853317
+                                 },
+                     "patient_level_metrics":  {
+                                                   "auroc":  0.8602355514178894,
+                                                   "auprc":  0.44372189357201486
+                                               },
+                     "brier_score":  0.016961489069122954,
+                     "official_utility":  0.2724508469804326,
+                     "early_warning":  {
+                                           "early_detection_rate":  0.4246575342465753,
+                                           "false_alert_rate":  0.07551240560949299,
+                                           "median_lead_time_hours":  23.0
+                                       },
+                     "alert_burden":  {
+                                          "alerts_per_patient_day":  1.2304021989990412,
+                                          "alerts_per_nonsepsis_patient_day":  0.3095315214510764,
+                                          "mean_alerts_per_patient":  1.977
+                                      },
+                     "threshold":  0.1,
+                     "feature_set":  "enhanced",
+                     "patient_normalize":  false,
+                     "patients":  1000
+                 },
+                 {
+                     "delay_hours":  1,
+                     "metrics":  {
+                                     "auroc":  0.8466295875292216,
+                                     "auprc":  0.12665158729953419
+                                 },
+                     "patient_level_metrics":  {
+                                                   "auroc":  0.8634865747513706,
+                                                   "auprc":  0.4404917446466589
+                                               },
+                     "brier_score":  0.01699146847181061,
+                     "official_utility":  0.27194406644455904,
+                     "early_warning":  {
+                                           "early_detection_rate":  0.4383561643835616,
+                                           "false_alert_rate":  0.07227615965480043,
+                                           "median_lead_time_hours":  22.0
+                                       },
+                     "alert_burden":  {
+                                          "alerts_per_patient_day":  1.2322692736560958,
+                                          "alerts_per_nonsepsis_patient_day":  0.3095315214510764,
+                                          "mean_alerts_per_patient":  1.98
+                                      },
+                     "threshold":  0.1,
+                     "feature_set":  "enhanced",
+                     "patient_normalize":  false,
+                     "patients":  1000
+                 },
+                 {
+                     "delay_hours":  2,
+                     "metrics":  {
+                                     "auroc":  0.8496582294963001,
+                                     "auprc":  0.13285006239619923
+                                 },
+                     "patient_level_metrics":  {
+                                                   "auroc":  0.871821016388113,
+                                                   "auprc":  0.4579857252637883
+                                               },
+                     "brier_score":  0.01687890500529815,
+                     "official_utility":  0.29715170569189614,
+                     "early_warning":  {
+                                           "early_detection_rate":  0.4246575342465753,
+                                           "false_alert_rate":  0.07119741100323625,
+                                           "median_lead_time_hours":  23.0
+                                       },
+                     "alert_burden":  {
+                                          "alerts_per_patient_day":  1.2453387962554787,
+                                          "alerts_per_nonsepsis_patient_day":  0.3137716792791733,
+                                          "mean_alerts_per_patient":  2.001
+                                      },
+                     "threshold":  0.1,
+                     "feature_set":  "enhanced",
+                     "patient_normalize":  false,
+                     "patients":  1000
+                 },
+                 {
+                     "delay_hours":  3,
+                     "metrics":  {
+                                     "auroc":  0.8493958164438106,
+                                     "auprc":  0.1303783403611048
+                                 },
+                     "patient_level_metrics":  {
+                                                   "auroc":  0.8716141330850733,
+                                                   "auprc":  0.44251697109509075
+                                               },
+                     "brier_score":  0.016931108382781522,
+                     "official_utility":  0.31013561071747,
+                     "early_warning":  {
+                                           "early_detection_rate":  0.3972602739726027,
+                                           "false_alert_rate":  0.07011866235167206,
+                                           "median_lead_time_hours":  24.0
+                                       },
+                     "alert_burden":  {
+                                          "alerts_per_patient_day":  1.2590306770738797,
+                                          "alerts_per_nonsepsis_patient_day":  0.3187185300786197,
+                                          "mean_alerts_per_patient":  2.023
+                                      },
+                     "threshold":  0.1,
+                     "feature_set":  "enhanced",
+                     "patient_normalize":  false,
+                     "patients":  1000
+                 }
+             ]
+}

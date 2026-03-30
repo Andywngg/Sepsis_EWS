@@ -1,0 +1,58 @@
+{
+  "a_to_b": {
+    "metrics": {
+      "auroc": 0.7211098612673417,
+      "auprc": 0.04786722605395658
+    },
+    "patient_level_metrics": {
+      "auroc": 0.7039170506912442,
+      "auprc": 0.30732445809905096
+    },
+    "best_threshold": 0.25,
+    "utility_score": 0.04852210306042376,
+    "utility_kind": "official",
+    "alert_k": 1,
+    "official_utility": 0.04852210306042376,
+    "custom_utility": -0.10649999999999998,
+    "accuracy": 0.9774127310061602,
+    "f_measure": 0.08333333333333333,
+    "early_warning": {
+      "early_detection_rate": 0.14285714285714285,
+      "false_alert_rate": 0.005376344086021506,
+      "median_lead_time_hours": 24.5
+    },
+    "test_patients": 200,
+    "calibration": {
+      "method": "none",
+      "patients": 0
+    }
+  },
+  "b_to_a": {
+    "metrics": {
+      "auroc": 0.7168960418084507,
+      "auprc": 0.07225433729902576
+    },
+    "patient_level_metrics": {
+      "auroc": 0.6819444444444445,
+      "auprc": 0.2291703856516606
+    },
+    "best_threshold": 0.125,
+    "utility_score": 0.04617312834224597,
+    "utility_kind": "official",
+    "alert_k": 1,
+    "official_utility": 0.04617312834224597,
+    "custom_utility": -0.1845,
+    "accuracy": 0.9691635786130227,
+    "f_measure": 0.07905138339920949,
+    "early_warning": {
+      "early_detection_rate": 0.05,
+      "false_alert_rate": 0.005555555555555556,
+      "median_lead_time_hours": 166.0
+    },
+    "test_patients": 200,
+    "calibration": {
+      "method": "none",
+      "patients": 0
+    }
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "tradeoff": [
+    {
+      "drop_pct": 0,
+      "coverage": 1.0,
+      "auroc": 0.8469531472177367,
+      "auprc": 0.12761661777853317,
+      "early_detection_rate": 0.2602739726027397,
+      "false_alert_rate": 0.021574973031283712,
+      "median_lead_time_hours": 40.5
+    },
+    {
+      "drop_pct": 5,
+      "coverage": 0.9619842854549698,
+      "auroc": 0.8495203134648215,
+      "auprc": 0.13426561644253915,
+      "early_detection_rate": 0.2602739726027397,
+      "false_alert_rate": 0.019417475728155338,
+      "median_lead_time_hours": 40.5
+    },
+    {
+      "drop_pct": 10,
+      "coverage": 0.9235018022456759,
+      "auroc": 0.8521786980145822,
+      "auprc": 0.1384759465502074,
+      "early_detection_rate": 0.2602739726027397,
+      "false_alert_rate": 0.019417475728155338,
+      "median_lead_time_hours": 40.5
+    },
+    {
+      "drop_pct": 15,
+      "coverage": 0.8902056375282006,
+      "auroc": 0.8527423530238281,
+      "auprc": 0.13678980607385563,
+      "early_detection_rate": 0.2602739726027397,
+      "false_alert_rate": 0.019417475728155338,
+      "median_lead_time_hours": 40.5
+    },
+    {
+      "drop_pct": 20,
+      "coverage": 0.8902056375282006,
+      "auroc": 0.8527423530238281,
+      "auprc": 0.13678980607385563,
+      "early_detection_rate": 0.2602739726027397,
+      "false_alert_rate": 0.019417475728155338,
+      "median_lead_time_hours": 40.5
+    },
+    {
+      "drop_pct": 25,
+      "coverage": 0.7825117340455877,
+      "auroc": 0.850906261947922,
+      "auprc": 0.14114975508796568,
+      "early_detection_rate": 0.2602739726027397,
+      "false_alert_rate": 0.019417475728155338,
+      "median_lead_time_hours": 40.0
+    },
+    {
+      "drop_pct": 30,
+      "coverage": 0.7825117340455877,
+      "auroc": 0.850906261947922,
+      "auprc": 0.14114975508796568,
+      "early_detection_rate": 0.2602739726027397,
+      "false_alert_rate": 0.019417475728155338,
+      "median_lead_time_hours": 40.0
+    },
+    {
+      "drop_pct": 35,
+      "coverage": 0.7825117340455877,
+      "auroc": 0.850906261947922,
+      "auprc": 0.14114975508796568,
+      "early_detection_rate": 0.2602739726027397,
+      "false_alert_rate": 0.019417475728155338,
+      "median_lead_time_hours": 40.0
+    },
+    {
+      "drop_pct": 40,
+      "coverage": 0.6153307574618158,
+      "auroc": 0.8614972172198878,
+      "auprc": 0.1456863834425764,
+      "early_detection_rate": 0.2638888888888889,
+      "false_alert_rate": 0.018378378378378378,
+      "median_lead_time_hours": 44.0
+    },
+    {
+      "drop_pct": 45,
+      "coverage": 0.6153307574618158,
+      "auroc": 0.8614972172198878,
+      "auprc": 0.1456863834425764,
+      "early_detection_rate": 0.2638888888888889,
+      "false_alert_rate": 0.018378378378378378,
+      "median_lead_time_hours": 44.0
+    },
+    {
+      "drop_pct": 50,
+      "coverage": 0.6153307574618158,
+      "auroc": 0.8614972172198878,
+      "auprc": 0.1456863834425764,
+      "early_detection_rate": 0.2638888888888889,
+      "false_alert_rate": 0.018378378378378378,
+      "median_lead_time_hours": 44.0
+    }
+  ]
+}

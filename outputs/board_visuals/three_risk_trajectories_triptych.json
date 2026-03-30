@@ -1,0 +1,22 @@
+{
+  "threshold": 0.1,
+  "patients": {
+    "early_detection": {
+      "patient_id": "p000009",
+      "onset_hour": 248,
+      "first_alert_hour": 58,
+      "lead_time_hours": 190
+    },
+    "late_detection": {
+      "patient_id": "p000765",
+      "onset_hour": 53,
+      "first_alert_hour": 60,
+      "delay_hours": 7
+    },
+    "false_alarm": {
+      "patient_id": "p000978",
+      "onset_hour": null,
+      "alert_count": 30
+    }
+  }
+}

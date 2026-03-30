@@ -1,0 +1,27 @@
+{
+  "delay_hours": 3,
+  "metrics": {
+    "auroc": 0.8493958164438106,
+    "auprc": 0.1303783403611048
+  },
+  "patient_level_metrics": {
+    "auroc": 0.8716141330850733,
+    "auprc": 0.44251697109509075
+  },
+  "brier_score": 0.016931108382781522,
+  "official_utility": 0.31013561071747,
+  "early_warning": {
+    "early_detection_rate": 0.3972602739726027,
+    "false_alert_rate": 0.07011866235167206,
+    "median_lead_time_hours": 24.0
+  },
+  "alert_burden": {
+    "alerts_per_patient_day": 1.2590306770738797,
+    "alerts_per_nonsepsis_patient_day": 0.3187185300786197,
+    "mean_alerts_per_patient": 2.023
+  },
+  "threshold": 0.1,
+  "feature_set": "enhanced",
+  "patient_normalize": false,
+  "patients": 1000
+}

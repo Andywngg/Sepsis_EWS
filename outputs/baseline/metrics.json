@@ -1,0 +1,17 @@
+{
+  "model": "logreg",
+  "utility_weighted": false,
+  "metrics": {
+    "auroc": 0.7682468677283733,
+    "auprc": 0.06684885845754694
+  },
+  "best_threshold": 0.1,
+  "utility_score": -0.08120000000000005,
+  "early_warning": {
+    "early_detection_rate": 0.3287671232876712,
+    "false_alert_rate": 0.06903991370010787,
+    "median_lead_time_hours": 22.0
+  },
+  "feature_count": 123,
+  "feature_set": "basic"
+}

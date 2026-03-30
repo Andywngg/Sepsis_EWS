@@ -1,0 +1,28 @@
+{
+  "metrics": {
+    "auroc": 0.877229920557481,
+    "auprc": 0.14407578261184595
+  },
+  "patient_level_metrics": {
+    "auroc": 0.8839324116743471,
+    "auprc": 0.4931473800464193
+  },
+  "official_utility": 0.3093901354156371,
+  "early_warning": {
+    "early_detection_rate": 0.4857142857142857,
+    "false_alert_rate": 0.06236559139784946,
+    "median_lead_time_hours": 25.0
+  },
+  "alert_burden": {
+    "alerts_per_patient_day": 1.439635535307518,
+    "alerts_per_nonsepsis_patient_day": 0.3825925063998139,
+    "mean_alerts_per_patient": 2.37
+  },
+  "threshold": 0.1,
+  "alert_k": 1,
+  "feature_set": "enhanced",
+  "max_patients": 500,
+  "patient_normalize": false,
+  "note": "Prospective simulation using causal features (no future leakage).",
+  "split_source": "test_patients.json"
+}

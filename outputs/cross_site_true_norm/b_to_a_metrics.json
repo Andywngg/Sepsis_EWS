@@ -1,0 +1,28 @@
+{
+  "metrics": {
+    "auroc": 0.8571355553875151,
+    "auprc": 0.2717592851812525
+  },
+  "patient_level_metrics": {
+    "auroc": 0.8063888888888888,
+    "auprc": 0.46414506019476526
+  },
+  "best_threshold": 0.1,
+  "utility_score": 0.133322192513369,
+  "utility_kind": "official",
+  "alert_k": 1,
+  "official_utility": 0.133322192513369,
+  "custom_utility": -0.11800000000000001,
+  "accuracy": 0.9756484912652197,
+  "f_measure": 0.226890756302521,
+  "early_warning": {
+    "early_detection_rate": 0.1,
+    "false_alert_rate": 0.005555555555555556,
+    "median_lead_time_hours": -1.0
+  },
+  "test_patients": 200,
+  "calibration": {
+    "method": "none",
+    "patients": 0
+  }
+}

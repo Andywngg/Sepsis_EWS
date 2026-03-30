@@ -1,0 +1,20 @@
+{
+  "innovation2_threshold": {
+    "default_threshold": 0.5,
+    "default_utility": 0.031,
+    "optimal_threshold": 0.1,
+    "optimal_utility": 0.118,
+    "improvement_x": 3.8064516129032255
+  },
+  "primary_vs_baseline": {
+    "utility_baseline": 0.0478766834029377,
+    "utility_model": 0.13208671578058281,
+    "auroc_baseline": 0.7682468677283733,
+    "auroc_model": 0.8469531472177367,
+    "edr_baseline": 0.1232876712328767,
+    "edr_model": 0.2602739726027397,
+    "utility_improvement": 0.08421003237764511,
+    "auroc_improvement": 0.07870627948936348,
+    "edr_improvement": 0.136986301369863
+  }
+}

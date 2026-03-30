@@ -1,0 +1,17 @@
+{
+  "model": "hgb",
+  "utility_weighted": true,
+  "metrics": {
+    "auroc": 0.8446728381011348,
+    "auprc": 0.12181157948400326
+  },
+  "best_threshold": 0.1,
+  "utility_score": -0.05179999999999998,
+  "early_warning": {
+    "early_detection_rate": 0.4383561643835616,
+    "false_alert_rate": 0.07551240560949299,
+    "median_lead_time_hours": 21.0
+  },
+  "feature_count": 328,
+  "feature_set": "enhanced"
+}

@@ -1,0 +1,35 @@
+{
+  "threshold": 0.1,
+  "alert_k": 1,
+  "patient_confusion": {
+    "tp": 7,
+    "fp": 11,
+    "fn": 1,
+    "tn": 92
+  },
+  "sensitivity": 0.875,
+  "specificity": 0.8932038834951457,
+  "mean_quality": {
+    "tp": 0.29004399478435516,
+    "fp": 0.32642808014696295,
+    "fn": 0.4115385413169861,
+    "tn": 0.306061709218699
+  },
+  "mean_hours": {
+    "tp": 95.71428571428571,
+    "fp": 42.72727272727273,
+    "fn": 13.0,
+    "tn": 35.17391304347826
+  },
+  "lead_time": {
+    "mean": 59.285714285714285,
+    "median": 22.0,
+    "count": 7
+  },
+  "alert_burden": {
+    "alerts_per_patient_day": 2.4661654135338336,
+    "alerts_per_nonsepsis_patient_day": 0.38855909336211536,
+    "mean_alerts_per_patient": 4.063063063063063
+  },
+  "max_patients": 500
+}

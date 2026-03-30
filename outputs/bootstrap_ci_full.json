@@ -1,0 +1,42 @@
+{
+  "auroc": {
+    "mean": 0.8488541519928594,
+    "ci_low": 0.820322322445642,
+    "ci_high": 0.8881587398764094
+  },
+  "auprc": {
+    "mean": 0.11920325605322737,
+    "ci_low": 0.09554037377093752,
+    "ci_high": 0.16630233487888596
+  },
+  "official_utility": {
+    "mean": 0.12265004371204764,
+    "ci_low": 0.08129213929154534,
+    "ci_high": 0.18417643973208028
+  },
+  "early_detection_rate": {
+    "mean": 0.23510628616771262,
+    "ci_low": 0.166407867494824,
+    "ci_high": 0.30096500257334025
+  },
+  "false_alert_rate": {
+    "mean": 0.022178341160857293,
+    "ci_low": 0.016647091990978455,
+    "ci_high": 0.0326143066606582
+  },
+  "alerts_per_patient_day": {
+    "mean": 0.3971059300215802,
+    "ci_low": 0.2641147046625998,
+    "ci_high": 0.6113789565766446
+  },
+  "n_bootstrap": 10,
+  "max_patients": 40336,
+  "fixed_threshold": 0.1,
+  "split_source": "test_patients.json",
+  "calibration": {
+    "method": "sigmoid",
+    "fraction": 0.1,
+    "max_patients": 200
+  },
+  "completed": 10
+}

@@ -1,0 +1,162 @@
+{
+  "rows": [
+    {
+      "threshold": 0.05,
+      "utility": 0.825294757086713,
+      "early_detection_rate": 0.926829268292683,
+      "false_alert_rate": 0.10863509749303621,
+      "alerts_per_patient_day": 1.9810533289168613
+    },
+    {
+      "threshold": 0.0736842105263158,
+      "utility": 0.8016389330211556,
+      "early_detection_rate": 0.8536585365853658,
+      "false_alert_rate": 0.0807799442896936,
+      "alerts_per_patient_day": 1.5947002318648569
+    },
+    {
+      "threshold": 0.09736842105263158,
+      "utility": 0.7643950163057113,
+      "early_detection_rate": 0.8292682926829268,
+      "false_alert_rate": 0.055710306406685235,
+      "alerts_per_patient_day": 1.3609804571050026
+    },
+    {
+      "threshold": 0.12105263157894737,
+      "utility": 0.7340413078016557,
+      "early_detection_rate": 0.8048780487804879,
+      "false_alert_rate": 0.036211699164345405,
+      "alerts_per_patient_day": 1.1972176217290502
+    },
+    {
+      "threshold": 0.14473684210526316,
+      "utility": 0.6994815620035121,
+      "early_detection_rate": 0.7804878048780488,
+      "false_alert_rate": 0.027855153203342618,
+      "alerts_per_patient_day": 1.0938721430937404
+    },
+    {
+      "threshold": 0.16842105263157897,
+      "utility": 0.6696797391086211,
+      "early_detection_rate": 0.7560975609756098,
+      "false_alert_rate": 0.016713091922005572,
+      "alerts_per_patient_day": 0.979397151374628
+    },
+    {
+      "threshold": 0.19210526315789472,
+      "utility": 0.6368843548791704,
+      "early_detection_rate": 0.7073170731707317,
+      "false_alert_rate": 0.011142061281337047,
+      "alerts_per_patient_day": 0.8824113945014912
+    },
+    {
+      "threshold": 0.21578947368421053,
+      "utility": 0.6014466092482649,
+      "early_detection_rate": 0.6829268292682927,
+      "false_alert_rate": 0.011142061281337047,
+      "alerts_per_patient_day": 0.8029148724743298
+    },
+    {
+      "threshold": 0.23947368421052634,
+      "utility": 0.5806589179697299,
+      "early_detection_rate": 0.6829268292682927,
+      "false_alert_rate": 0.008356545961002786,
+      "alerts_per_patient_day": 0.7297780722093413
+    },
+    {
+      "threshold": 0.2631578947368421,
+      "utility": 0.5737519859520027,
+      "early_detection_rate": 0.6585365853658537,
+      "false_alert_rate": 0.008356545961002786,
+      "alerts_per_patient_day": 0.6900298111957607
+    },
+    {
+      "threshold": 0.2868421052631579,
+      "utility": 0.5506898570114559,
+      "early_detection_rate": 0.6585365853658537,
+      "false_alert_rate": 0.008356545961002786,
+      "alerts_per_patient_day": 0.6200728718118587
+    },
+    {
+      "threshold": 0.3105263157894737,
+      "utility": 0.5317417844301363,
+      "early_detection_rate": 0.5609756097560976,
+      "false_alert_rate": 0.008356545961002786,
+      "alerts_per_patient_day": 0.5898641934415373
+    },
+    {
+      "threshold": 0.33421052631578946,
+      "utility": 0.5305125846642696,
+      "early_detection_rate": 0.5609756097560976,
+      "false_alert_rate": 0.005571030640668524,
+      "alerts_per_patient_day": 0.559655515071216
+    },
+    {
+      "threshold": 0.35789473684210527,
+      "utility": 0.528564261225855,
+      "early_detection_rate": 0.5365853658536586,
+      "false_alert_rate": 0.005571030640668524,
+      "alerts_per_patient_day": 0.5342166280225243
+    },
+    {
+      "threshold": 0.3815789473684211,
+      "utility": 0.5148089305125846,
+      "early_detection_rate": 0.5365853658536586,
+      "false_alert_rate": 0.005571030640668524,
+      "alerts_per_patient_day": 0.5119576018549192
+    },
+    {
+      "threshold": 0.4052631578947368,
+      "utility": 0.51166485492098,
+      "early_detection_rate": 0.5365853658536586,
+      "false_alert_rate": 0.005571030640668524,
+      "alerts_per_patient_day": 0.49764822789003016
+    },
+    {
+      "threshold": 0.42894736842105263,
+      "utility": 0.5045739610335312,
+      "early_detection_rate": 0.5365853658536586,
+      "false_alert_rate": 0.005571030640668524,
+      "alerts_per_patient_day": 0.47538920172242494
+    },
+    {
+      "threshold": 0.45263157894736844,
+      "utility": 0.490358725645957,
+      "early_detection_rate": 0.5365853658536586,
+      "false_alert_rate": 0.005571030640668524,
+      "alerts_per_patient_day": 0.43882080158993075
+    },
+    {
+      "threshold": 0.4763157894736842,
+      "utility": 0.470816957939627,
+      "early_detection_rate": 0.5121951219512195,
+      "false_alert_rate": 0.005571030640668524,
+      "alerts_per_patient_day": 0.405432262338523
+    },
+    {
+      "threshold": 0.5,
+      "utility": 0.4664185968726482,
+      "early_detection_rate": 0.5121951219512195,
+      "false_alert_rate": 0.002785515320334262,
+      "alerts_per_patient_day": 0.38794302749254744
+    }
+  ],
+  "sensitive_policy": {
+    "threshold": 0.05,
+    "utility": 0.825294757086713,
+    "early_detection_rate": 0.926829268292683,
+    "false_alert_rate": 0.10863509749303621,
+    "alerts_per_patient_day": 1.9810533289168613
+  },
+  "conservative_policy": {
+    "threshold": 0.5,
+    "utility": 0.4664185968726482,
+    "early_detection_rate": 0.5121951219512195,
+    "false_alert_rate": 0.002785515320334262,
+    "alerts_per_patient_day": 0.38794302749254744
+  },
+  "settings": {
+    "sensitive_min_early": 0.3,
+    "conservative_max_alerts": 0.5
+  }
+}
