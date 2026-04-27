@@ -1,5 +1,18 @@
 from __future__ import annotations
 
+# PURPOSE: Interactive Streamlit demo for exploring per-patient sepsis risk predictions.
+#
+# WHAT IT DOES:
+#   - Select any test patient from the sidebar
+#   - Plots predicted sepsis probability over time (risk trajectory)
+#   - Shows when the first alert fires vs when sepsis actually onset
+#   - Threshold slider updates alerts in real time
+#   - Replay slider: scrub hour-by-hour to see which measurements changed most
+#   - Export risk plot (PNG) or full report (PDF)
+#   - QR code lets judges scan and open the demo on their phones
+#
+# RUN: streamlit run demo_app/app.py
+
 import io
 import json
 import random
@@ -32,7 +45,7 @@ except Exception:
     PDF_AVAILABLE = False
 
 
-@st.cache_resource
+@st.cache_resource  # runs once and caches — prevents reloading the 40MB model on every click
 def load_model(weights_path: Path, medians_path: Path, metrics_path: Path):
     bundle = joblib.load(weights_path)
     med = json.loads(medians_path.read_text(encoding="utf-8"))
@@ -40,7 +53,7 @@ def load_model(weights_path: Path, medians_path: Path, metrics_path: Path):
     return bundle["model"], bundle["scaler"], np.array(med["medians"], dtype=float), metrics
 
 
-@st.cache_data
+@st.cache_data  # caches per argument — same patient path returns instantly on second load
 def list_patients(data_dir: Path) -> list[Path]:
     return sorted([p for p in data_dir.glob("*.psv")])
 
@@ -231,6 +244,9 @@ def _build_pdf_report(
     return bytes(pdf_bytes)
 
 def _get_local_ip() -> str | None:
+    # Find the machine's local WiFi IP so the QR code points to the right address.
+    # Trick: open a UDP socket toward Google DNS — the OS picks the network interface,
+    # then we read which IP was assigned. No data is actually sent.
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
@@ -355,6 +371,7 @@ def main() -> None:
     patient_id = st.sidebar.selectbox("Patient", patient_ids, key="patient_select")
     matches = [p for p in filtered if p.stem == patient_id]
     patient_path = matches[0] if matches else filtered[0]
+    # These sliders re-run the whole script on every change — alerts update instantly
     threshold = st.sidebar.slider("Alert threshold", min_value=0.01, max_value=0.99, value=0.10, step=0.01)
     alert_k = st.sidebar.slider("Consecutive alerts (k)", min_value=1, max_value=3, value=1, step=1)
     show_quality = st.sidebar.checkbox("Show data quality curve", value=True)
@@ -377,10 +394,12 @@ def main() -> None:
         Xb = base_bundle["scaler"].transform(Xb)
         baseline_probs = base_bundle["model"].predict_proba(Xb)[:, 1]
         baseline_threshold = float(base_metrics.get("best_threshold", 0.1))
+    # Impute → scale → predict probabilities for the selected patient
     X = np.where(np.isnan(feats), medians, feats)
     X = scaler.transform(X)
-    probs = model.predict_proba(X)[:, 1]
+    probs = model.predict_proba(X)[:, 1]  # one probability per hour
 
+    # Apply alert policy: fire alert where prob >= threshold
     preds = apply_alert_policy(probs, threshold, alert_k=alert_k)
     alert_idx = np.where(preds == 1)[0]
     first_alert = int(alert_idx[0]) if len(alert_idx) else None
@@ -409,6 +428,9 @@ def main() -> None:
         snap[2].metric("Utility", f"{util_val:.3f}")
         snap[3].metric("Alerts/day", f"{metrics.get('alert_burden', {}).get('alerts_per_patient_day', 0.0):.2f}")
 
+    # MAIN CHART: risk trajectory plot
+    # Blue line = model probability, orange dashed = threshold, red = onset, green = first alert
+    # Gap between green and red lines = lead time (hours of warning)
     st.subheader("Risk Over Time")
     fig, ax = plt.subplots(figsize=(8, 3))
     ax.plot(probs, label="Risk")
@@ -489,6 +511,8 @@ def main() -> None:
         f"At hour {current_hour}: risk={risk_now:.3f} | alert triggered so far: {alerted_so_far}"
     )
 
+    # FEATURE ATTRIBUTION: which measurements changed most in the last hour?
+    # Sorts by absolute delta — largest changes rank first.
     st.subheader("Top Signal Changes (1-hour delta)")
     deltas = _top_deltas(df.values, list(df.columns), current_hour, top_k=6)
     if deltas:
