@@ -1,5 +1,16 @@
 from __future__ import annotations
 
+# PURPOSE: Generate per-patient case study plots for individual deep-dives.
+# OUTPUT:  One PNG per patient showing: risk probability over time (blue line),
+#          sepsis onset (red dashed line), and first alert hour (green dashed line).
+#          The gap between green and red = lead time (hours of warning).
+# USE:     Useful for science fair demonstrations and for spotting systematic errors
+#          (e.g., model detects the right patients but fires too early/late for some cases).
+# RUN:     python scripts/case_studies.py
+#              --data-dir data/train --weights outputs/utility/model.joblib
+#              --medians outputs/utility/medians.json
+#              --output-dir outputs/case_studies --threshold 0.1
+
 import argparse
 import json
 from pathlib import Path

@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+# PURPOSE: Tradeoff curve for conformal prediction (coverage vs. utility).
+# Reads conformal_alert.json and plots how coverage (fraction of hours predicted)
+# trades off against utility and alert burden as the confidence level (alpha) varies.
+# Lower alpha = only predict on very high-confidence hours (fewer but more reliable alerts).
+# RUN:     python scripts/make_conformal_tradeoff_visual.py
+#              --conformal outputs/conformal/conformal_alert.json
+#              --output outputs/visuals/conformal_tradeoff.png
+
 import argparse
 import json
 from pathlib import Path

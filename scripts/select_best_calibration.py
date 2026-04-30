@@ -1,5 +1,14 @@
 from __future__ import annotations
 
+# PURPOSE: Pick the best calibration configuration from a calibration_sweep run.
+# INPUT:   calibration_sweep.csv (output of calibration_sweep.py).
+# METHOD:  Sort rows by official_utility descending, then Brier score ascending.
+#          The first row after sorting is the best overall calibration setting.
+# OUTPUT:  best_calibration.json -- the winning row, with method, fraction, and all metrics.
+# RUN:     python scripts/select_best_calibration.py
+#              --sweep-csv outputs/calibration_sweep/calibration_sweep.csv
+#              --output outputs/calibration_sweep/best_calibration.json
+
 import argparse
 import csv
 import json

@@ -1,5 +1,19 @@
 from __future__ import annotations
 
+# PURPOSE: Hyperparameter grid search for the HistGradientBoosting model.
+# PARAMETERS SEARCHED:
+#   max_depth:       [4, 6, 8]    -- depth of each tree
+#   learning_rate:   [0.03, 0.05, 0.10] -- how much each tree contributes
+#   max_leaf_nodes:  [31, 63]     -- max number of leaf nodes per tree
+# TOTAL CONFIGS:     3 x 3 x 2 = 18 combinations
+# RANKED BY:         official PhysioNet utility score on the validation set
+# NOTE:  Uses a fresh train/test split (does not load a saved model).
+#        Intended to be run BEFORE train.py to find good hyperparameters.
+# OUTPUT:  tuning_results.json and tuning_results.csv -- all 18 configs ranked.
+# RUN:     python scripts/tune_hgb.py
+#              --data-dir data/train --feature-set enhanced --utility-weighted
+#              --output-dir outputs/tuning --max-patients 500
+
 import argparse
 import csv
 import json

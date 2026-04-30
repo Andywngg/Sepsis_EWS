@@ -1,5 +1,21 @@
 from __future__ import annotations
 
+# PURPOSE: Alert threshold vs clinical tradeoff analysis.
+# IDEA:    A lower threshold catches more sepsis cases but fires more false alarms.
+#          A higher threshold fires less often but misses more patients.
+#          This script sweeps 20 thresholds (0.05 to 0.50) and records:
+#            - early detection rate (how many sepsis patients were caught early)
+#            - false alert rate (how many healthy patients got an alert)
+#            - alerts per patient-day (operational load on the nursing staff)
+#          It also picks two named policies:
+#            "sensitive"    -- maximizes utility while meeting a minimum early-detection target
+#            "conservative" -- minimizes alert burden while maintaining positive utility
+# OUTPUT:  policy_analysis.json and policy_tradeoff.png
+# RUN:     python scripts/policy_analysis.py
+#              --data-dir data/train --weights outputs/utility/model.joblib
+#              --medians outputs/utility/medians.json
+#              --output-dir outputs/policy_analysis
+
 import argparse
 import json
 from pathlib import Path

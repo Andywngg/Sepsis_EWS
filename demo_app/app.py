@@ -80,6 +80,9 @@ def _load_policy(policy_path: Path) -> dict:
     return json.loads(policy_path.read_text(encoding="utf-8"))
 
 def _nearest_policy_row(rows: list[dict], threshold: float) -> dict | None:
+    # The policy CSV was generated at fixed thresholds (e.g. 0.05, 0.10, ...).
+    # When the user drags the slider to 0.13, we pick the closest row (0.10 or 0.15)
+    # rather than rerunning the full dataset eval on every slider move.
     if not rows:
         return None
     return min(rows, key=lambda r: abs(float(r.get("threshold", 0.0)) - threshold))
@@ -127,7 +130,9 @@ def _build_risk_plot(
 
 
 def _compute_patient_utility(labels: np.ndarray, preds: np.ndarray) -> float:
-    # Official utility normalization, applied to a single patient.
+    # Mirrors compute_official_utility() from utils.py but for ONE patient at a time
+    # so we can show it on screen per-patient.
+    # Normalized: 0.0 = equivalent to never alerting, 1.0 = perfect oracle at -6h.
     dt_early = -12
     dt_optimal = -6
     dt_late = 3
@@ -383,6 +388,8 @@ def main() -> None:
     baseline_probs = None
     baseline_threshold = None
     if show_baseline and baseline_weights.exists() and baseline_medians.exists():
+        # Baseline model (logreg/basic features) uses its OWN medians and scaler —
+        # these are different from the enhanced model's, so we load them separately.
         base_bundle = joblib.load(baseline_weights)
         base_med = json.loads(baseline_medians.read_text(encoding="utf-8"))
         base_medians = np.array(base_med["medians"], dtype=float)
@@ -394,7 +401,9 @@ def main() -> None:
         Xb = base_bundle["scaler"].transform(Xb)
         baseline_probs = base_bundle["model"].predict_proba(Xb)[:, 1]
         baseline_threshold = float(base_metrics.get("best_threshold", 0.1))
-    # Impute → scale → predict probabilities for the selected patient
+    # Inference pipeline — must mirror training exactly (same order: impute, then scale).
+    # medians come from training data (saved in medians.json) — never recomputed here.
+    # scaler.transform (NOT fit_transform) applies the already-learned mean/std.
     X = np.where(np.isnan(feats), medians, feats)
     X = scaler.transform(X)
     probs = model.predict_proba(X)[:, 1]  # one probability per hour

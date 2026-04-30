@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+# PURPOSE: Generate synthetic patient data for demos and testing.
+# WHY:     The real PhysioNet data cannot be shared publicly (it requires a data use agreement).
+#          For demo purposes (science fair, code review), synthetic patients that look
+#          statistically similar to real ICU data let the demo app work without the real dataset.
+# OUTPUT:  A directory of .psv files in the same format as the real data.
+# RUN:     python scripts/make_synthetic.py
+#              --output-dir data/synthetic --n-patients 100
+
 import argparse
 from pathlib import Path
 

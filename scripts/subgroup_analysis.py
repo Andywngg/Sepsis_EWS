@@ -1,5 +1,25 @@
 from __future__ import annotations
 
+# Fairness and equity analysis: does the model perform equally well across different
+# groups of patients, or is it better for some groups than others?
+#
+# A model that looks good on average can still be harmful if it performs poorly for
+# a specific subgroup. For example: elderly patients deteriorate faster, giving less
+# time between the model's optimal alert window and actual sepsis onset. Or one ICU
+# unit type might draw labs less frequently, creating sparser feature vectors.
+#
+# This script segments test patients by:
+#   age bucket: under 40, 40-59, 60-79, 80 and over
+#   gender:     encoded as 0 or 1 in the dataset
+#   ICU unit:   Unit1 or Unit2 (different ward types in the PhysioNet dataset)
+#
+# For each subgroup it computes AUROC, utility, early detection rate, and alert burden.
+#
+# Run: python scripts/subgroup_analysis.py
+#      --data-dir data/train --weights outputs/utility/model.joblib
+#      --medians outputs/utility/medians.json --threshold 0.1
+#      --output-dir outputs/subgroup
+
 import argparse
 import json
 from pathlib import Path
@@ -19,6 +39,7 @@ from sepsis_ews.utils import (
 
 
 def age_bucket(age: float | int | None) -> str:
+    # Convert a continuous age value to a discrete group label.
     if age is None or np.isnan(age):
         return "age_unknown"
     if age < 40:
@@ -37,6 +58,8 @@ def gender_bucket(gender: float | int | None) -> str:
 
 
 def unit_bucket(unit1: float | int | None, unit2: float | int | None) -> str:
+    # The PhysioNet dataset encodes ICU unit type as two binary columns.
+    # A patient is in unit1 if the Unit1 column is 1, and in unit2 if Unit2 is 1.
     if unit1 == 1:
         return "unit1"
     if unit2 == 1:
@@ -53,6 +76,8 @@ def compute_group_metrics(
     threshold: float,
     alert_k: int,
 ) -> dict:
+    # Compute all performance metrics for a single subgroup.
+    # This is the same set of metrics as the overall evaluation, just applied to a subset.
     metrics = compute_basic_metrics(y, p)
     patient_metrics = compute_patient_level_metrics(pid, y, p)
     official_util = compute_official_utility(pid, y, p, threshold, alert_k=alert_k)
@@ -86,6 +111,7 @@ def main() -> None:
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Load only the held-out test patient files so we never evaluate on training patients.
     files = list_patient_files(data_dir)
     split_file = Path(args.weights).parent / "test_patients.json"
     split_source = "group_shuffle_split"
@@ -110,11 +136,13 @@ def main() -> None:
     all_pid = []
     all_hours = []
     all_onset = []
-    patient_groups = {}
+    patient_groups = {}  # maps patient_id -> {age: ..., gender: ..., unit: ...}
 
     for path in files:
         df = load_patient_df(path)
         labels = df["SepsisLabel"].values.astype(int)
+
+        # Run the same preprocessing pipeline used at training time.
         feats, _ = build_features(df, feature_set=args.feature_set, patient_normalize=args.patient_normalize)
         X = np.where(np.isnan(feats), medians, feats)
         X = scaler.transform(X)
@@ -128,6 +156,8 @@ def main() -> None:
         onset_val = -1 if onset is None else onset
         all_onset.append(np.array([onset_val] * len(labels)))
 
+        # Read demographic columns from the first row of this patient's file.
+        # Use np.nan as the default if the column is missing from this dataset.
         age = df["Age"].iloc[0] if "Age" in df.columns else np.nan
         gender = df["Gender"].iloc[0] if "Gender" in df.columns else np.nan
         unit1 = df["Unit1"].iloc[0] if "Unit1" in df.columns else np.nan
@@ -144,14 +174,17 @@ def main() -> None:
     hours = np.concatenate(all_hours)
     onset_hours = np.concatenate(all_onset)
 
+    # Compute metrics on the full test set as the baseline for comparison.
     overall = compute_group_metrics(pid, y, p, hours, onset_hours, args.threshold, args.alert_k)
 
     def subset_for(group_key: str, group_value: str) -> dict:
+        # Select only the rows belonging to patients in this subgroup, then compute metrics.
         keep = np.array([patient_groups[patient_id][group_key] == group_value for patient_id in pid])
         return compute_group_metrics(
             pid[keep], y[keep], p[keep], hours[keep], onset_hours[keep], args.threshold, args.alert_k
         )
 
+    # Compute metrics for every distinct value of each grouping variable.
     groups = {"age": {}, "gender": {}, "unit": {}}
     for g in ("age", "gender", "unit"):
         values = sorted({info[g] for info in patient_groups.values()})

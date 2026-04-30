@@ -1,5 +1,20 @@
 from __future__ import annotations
 
+# PURPOSE: Prospective-style simulation of real-time scoring.
+# DISTINCTION FROM eval.py: eval.py runs the model on all hours at once (batch).
+#          This script simulates what would happen if the model were DEPLOYED LIVE --
+#          it feeds data hour-by-hour to the model, ensuring features at hour T
+#          use only information available up to hour T (no future data leakage).
+#          The feature engineering in data.py already enforces this (forward-fill only
+#          from past hours, rolling windows only over past values).
+# NOTE:    The underlying data is still historical (retrospective). This is a simulation
+#          of prospective behavior, not a true clinical trial.
+# OUTPUT:  prospective_eval.json
+# RUN:     python scripts/prospective_eval.py
+#              --data-dir data/train --weights outputs/utility/model.joblib
+#              --medians outputs/utility/medians.json --feature-set enhanced
+#              --output-dir outputs/prospective
+
 import argparse
 import json
 from pathlib import Path

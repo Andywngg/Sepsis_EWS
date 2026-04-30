@@ -1,5 +1,26 @@
 from __future__ import annotations
 
+# Finds the best probability calibration setting for this trained model.
+#
+# Gradient boosting tends to produce overconfident probabilities: the model might
+# predict 0.95 when the true rate is only 0.60, or 0.02 when it should be 0.10.
+# Calibration adds a thin correction layer on top of the model to fix this.
+# Two methods are supported:
+#   sigmoid (Platt scaling): fits a logistic sigmoid a*x + b on top of raw scores.
+#   isotonic: fits a step-function. More flexible but needs more calibration data.
+#
+# We also sweep over how many patients to use for fitting the calibration layer,
+# because using too few gives a poorly fit calibration, and using too many wastes
+# training data that could have trained the main model.
+#
+# The winner is ranked by official utility and Brier score.
+# Brier score = mean squared error between predicted probability and actual label.
+# Lower Brier score = probabilities are more accurate.
+#
+# Run: python scripts/calibration_sweep.py
+#      --data-dir data/train --weights outputs/utility/model.joblib
+#      --medians outputs/utility/medians.json --output-dir outputs/calibration_sweep
+
 import argparse
 import csv
 import json
@@ -45,6 +66,7 @@ def main() -> None:
         patient_normalize=args.patient_normalize,
     )
 
+    # Split into train and test. Calibration patients are drawn from the train side only.
     splitter = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
     train_idx, test_idx = next(splitter.split(X, y, groups=patient_ids))
     X_train, y_train = X[train_idx], y[train_idx]
@@ -63,16 +85,20 @@ def main() -> None:
     X_train = scaler.transform(X_train)
     X_test = scaler.transform(X_test)
 
+    # Get the uncalibrated probabilities as the baseline (method="none" config below).
     y_prob_raw = model.predict_proba(X_test)[:, 1]
 
+    # Define the 7 configurations we want to compare.
+    # Each config specifies: calibration method, fraction of training patients to use,
+    # and an absolute cap on the number of calibration patients.
     configs = [
-        {"method": "none", "fraction": 0.0, "max_patients": 0},
-        {"method": "sigmoid", "fraction": 0.05, "max_patients": 200},
-        {"method": "sigmoid", "fraction": 0.1, "max_patients": 500},
-        {"method": "sigmoid", "fraction": 0.2, "max_patients": 1000},
+        {"method": "none",     "fraction": 0.0,  "max_patients": 0},
+        {"method": "sigmoid",  "fraction": 0.05, "max_patients": 200},
+        {"method": "sigmoid",  "fraction": 0.1,  "max_patients": 500},
+        {"method": "sigmoid",  "fraction": 0.2,  "max_patients": 1000},
         {"method": "isotonic", "fraction": 0.05, "max_patients": 200},
-        {"method": "isotonic", "fraction": 0.1, "max_patients": 500},
-        {"method": "isotonic", "fraction": 0.2, "max_patients": 1000},
+        {"method": "isotonic", "fraction": 0.1,  "max_patients": 500},
+        {"method": "isotonic", "fraction": 0.2,  "max_patients": 1000},
     ]
 
     results = []
@@ -80,9 +106,11 @@ def main() -> None:
 
     for cfg in configs:
         if cfg["method"] == "none":
+            # No calibration: use the raw probabilities directly.
             y_prob = y_prob_raw
             cal_patients = 0
         else:
+            # Select a random subset of training patients for calibration.
             train_pids = np.unique(patient_ids[train_idx])
             rng = np.random.default_rng(42)
             rng.shuffle(train_pids)
@@ -93,6 +121,8 @@ def main() -> None:
             X_cal = np.where(np.isnan(X[cal_idx]), medians, X[cal_idx])
             X_cal = scaler.transform(X_cal)
             y_cal = y[cal_idx]
+            # Fit the calibration wrapper. cv="prefit" means: use the already-trained model,
+            # do not retrain it, just fit a sigmoid or isotonic function on the residuals.
             calibrator = CalibratedClassifierCV(model, cv="prefit", method=cfg["method"])
             calibrator.fit(X_cal, y_cal)
             y_prob = calibrator.predict_proba(X_test)[:, 1]
@@ -103,14 +133,8 @@ def main() -> None:
         brier = float(brier_score_loss(y_test, y_prob))
         brier_raw = float(brier_score_loss(y_test, y_prob_raw))
         best_thr, best_util = select_threshold_by_utility(
-            pid_test,
-            hours[test_idx],
-            onset_hours[test_idx],
-            y_test,
-            y_prob,
-            thresholds,
-            utility_kind=args.utility,
-            alert_k=args.alert_k,
+            pid_test, hours[test_idx], onset_hours[test_idx], y_test, y_prob,
+            thresholds, utility_kind=args.utility, alert_k=args.alert_k,
         )
         official_util = compute_official_utility(pid_test, y_test, y_prob, best_thr, alert_k=args.alert_k)
         custom_util = compute_utility(
@@ -136,9 +160,11 @@ def main() -> None:
             }
         )
 
+    # Sort so the best configuration (highest utility) appears first.
     results.sort(key=lambda r: r["official_utility"], reverse=True)
     save_json(output_dir / "calibration_sweep.json", {"results": results})
 
+    # Also save as CSV so results can be opened in a spreadsheet.
     csv_path = output_dir / "calibration_sweep.csv"
     with csv_path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=list(results[0].keys()))

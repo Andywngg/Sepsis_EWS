@@ -1,5 +1,24 @@
 from __future__ import annotations
 
+# Selective prediction: skip patients the model is uncertain about and defer them
+# to clinical judgment rather than firing or suppressing an alert.
+#
+# For each patient, we compute a "confidence score" = the average distance between
+# the model's predicted probability and 0.5 across all their ICU hours.
+# If the average prediction was 0.9 or 0.1 (far from 0.5), the model is confident.
+# If the average was near 0.5 every hour, the model was repeatedly on the fence.
+#
+# We can then choose to only act on the high-confidence patients and defer the rest.
+# Deferring low-confidence patients reduces false alarms on cases the model cannot
+# handle well, at the cost of less coverage (some patients get no automated decision).
+#
+# This is a coverage-utility tradeoff: higher coverage = more patients get a decision,
+# but lower precision because some uncertain cases are included.
+#
+# Run: python scripts/defer_policy.py
+#      --data-dir data/train --weights outputs/utility/model.joblib
+#      --medians outputs/utility/medians.json --output-dir outputs/defer
+
 import argparse
 import json
 from pathlib import Path
@@ -53,6 +72,7 @@ def main() -> None:
     hours_test = hours[test_idx]
     onset_test = onset_hours[test_idx]
 
+    # Optionally calibrate the probabilities before computing confidence.
     if args.calibrate != "none":
         train_pids = np.unique(patient_ids[train_idx])
         rng = np.random.default_rng(42)
@@ -70,17 +90,25 @@ def main() -> None:
     else:
         y_prob = model.predict_proba(X_test)[:, 1]
 
-    # Patient-level confidence = mean |p - 0.5|
+    # Compute per-patient confidence: the mean absolute deviation of the probability from 0.5.
+    # A patient where the model predicted 0.9 every hour has confidence close to 0.4 (high).
+    # A patient where the model predicted 0.5 every hour has confidence 0.0 (uncertain).
     unique_pids = np.unique(pid_test)
     conf = {}
     for pid in unique_pids:
         mask = pid_test == pid
         conf[pid] = float(np.mean(np.abs(y_prob[mask] - 0.5)))
 
+    # Sweep over different coverage levels from 50% to 100% of patients.
+    # At each level, compute the confidence threshold that retains exactly that fraction,
+    # then evaluate utility only on those patients.
     coverages = [round(c, 2) for c in np.linspace(0.5, 1.0, 11)]
     rows = []
 
     for cov in coverages:
+        # The confidence threshold for this coverage level: the (1-cov) quantile.
+        # Example: coverage=0.8 means keep the top 80% by confidence.
+        # We set the threshold at the 20th percentile of confidence values.
         threshold = np.quantile(list(conf.values()), 1 - cov)
         keep_pids = {pid for pid, v in conf.items() if v >= threshold}
         mask = np.array([pid in keep_pids for pid in pid_test], dtype=bool)
@@ -109,6 +137,9 @@ def main() -> None:
 
     save_json(output_dir / "defer_policy.json", {"rows": rows})
 
+    # Plot how utility and alert burden change as we raise the coverage requirement.
+    # At coverage=1.0 (right side) all patients are included. At coverage=0.5 only the
+    # most confident half are included. The sweet spot is usually somewhere in between.
     if rows:
         plt.figure(figsize=(5, 4))
         plt.plot([r["coverage"] for r in rows], [r["utility"] for r in rows], marker="o", label="Utility")

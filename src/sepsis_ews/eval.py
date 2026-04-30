@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-# PURPOSE: Load a saved model and run full evaluation on the held-out test set.
-# KEY DIFFERENCE FROM train.py: uses the exact test patient IDs saved during training
-#                               to guarantee the same split is always evaluated.
-# RUN: python -m sepsis_ews.eval --data-dir data/train --weights outputs/utility/model.joblib
-#                                --medians outputs/utility/medians.json
-#                                --feature-set enhanced --utility official
-#                                --calibrate sigmoid --output-dir outputs/eval
+# Loads a saved model and runs a full evaluation on the held-out test set.
+# Unlike train.py, this never trains anything. It only loads what train.py saved,
+# runs predictions, and produces metrics + visualizations.
+# Run: python -m sepsis_ews.eval --data-dir data/train --weights outputs/utility/model.joblib
+#      --medians outputs/utility/medians.json --feature-set enhanced --utility official
+#      --calibrate sigmoid --output-dir outputs/eval
 
 import argparse
 import json
@@ -56,7 +55,8 @@ def main() -> None:
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # --- STEP 1: LOAD ALL DATA ---
+    # Load the full dataset into memory. All patients are loaded here;
+    # we will then select only the held-out test patients below.
     X, y, patient_ids, hours, onset_hours, quality, _ = build_dataset(
         data_dir,
         max_patients=args.max_patients,
@@ -64,9 +64,11 @@ def main() -> None:
         patient_normalize=args.patient_normalize,
     )
 
-    # --- STEP 2: REPRODUCE EXACT SAME TEST SPLIT FROM TRAINING ---
-    # test_patients.json was saved by train.py — these are the held-out patient IDs.
-    # This guarantees the model is always evaluated on patients it never trained on.
+    # Reconstruct the exact same train/test split that was used during training.
+    # train.py saved the test patient IDs to test_patients.json. By loading that file
+    # we guarantee we are always evaluating on the same patients the model never saw,
+    # no matter how many times we re-run evaluation or how we change eval settings.
+    # If that file does not exist we fall back to re-running the same random split.
     split_file = Path(args.weights).parent / "test_patients.json"
     if split_file.exists():
         split         = json.loads(split_file.read_text(encoding="utf-8"))
@@ -80,9 +82,11 @@ def main() -> None:
     hours_test, onset_test = hours[test_idx], onset_hours[test_idx]
     pid_test               = patient_ids[test_idx]
 
-    # --- STEP 3: CALIBRATION PATIENT SELECTION ---
-    # Select a small subset of TRAINING patients to fit the calibration layer.
-    # These patients are separate from test — never used to train the main model.
+    # Select a small set of TRAINING patients to fit the calibration layer.
+    # These patients are not in the test set, so they cannot contaminate evaluation.
+    # Calibration fixes the scale of the model's probabilities so that a predicted
+    # probability of 0.6 actually corresponds to sepsis happening 60% of the time.
+    # This is important for the Brier score and for clinicians who interpret the numbers.
     calibration_idx, calibration_pids = None, []
     if args.calibrate != "none":
         if split_file.exists():
@@ -99,8 +103,10 @@ def main() -> None:
             _, calibration_idx = next(splitter.split(X, y, groups=patient_ids))
             calibration_pids   = np.unique(patient_ids[calibration_idx])
 
-    # --- STEP 4: IMPUTATION AND SCALING ---
-    # Use medians saved from training — same values applied here to avoid leakage.
+    # Fill in missing values using the medians that were saved during training.
+    # Using the training medians (not recomputed here) keeps the preprocessing consistent.
+    # The scaler.transform (not fit_transform) applies the learned mean and std
+    # from training without re-computing them from test data.
     med     = json.loads(Path(args.medians).read_text(encoding="utf-8"))
     medians = np.array(med["medians"], dtype=float)
     medians = np.where(np.isnan(medians), 0.0, medians)
@@ -109,33 +115,37 @@ def main() -> None:
     bundle = joblib.load(args.weights)
     model  = bundle["model"]
     scaler = bundle["scaler"]
-    X_test = scaler.transform(X_test)  # transform only — do NOT re-fit on test data
+    X_test = scaler.transform(X_test)
 
-    # --- STEP 5: RAW PROBABILITY PREDICTIONS ---
+    # Get the raw (uncalibrated) probabilities from the model.
+    # [:, 1] selects the second column, which is the probability of sepsis (class 1).
     y_prob_raw = model.predict_proba(X_test)[:, 1]
 
-    # --- STEP 6: OPTIONAL CALIBRATION (Platt scaling / isotonic regression) ---
-    # Aligns predicted probabilities with true outcome frequencies.
-    # Improves Brier score; uses a small held-out calibration set.
+    # If calibration is requested, fit a small sigmoid layer on top of the model.
+    # cv="prefit" tells sklearn: do not re-train the model, just fit the sigmoid wrapper.
+    # This adjusts the raw scores so they line up better with actual outcome frequencies.
     calibration_info = {"method": "none", "patients": 0, "fraction": float(args.calibration_fraction), "max_patients": int(args.calibration_max_patients)}
     y_prob = y_prob_raw
     if args.calibrate != "none" and calibration_idx is not None and len(calibration_idx) > 0:
         X_cal = np.where(np.isnan(X[calibration_idx]), medians, X[calibration_idx])
         X_cal = scaler.transform(X_cal)
         y_cal = y[calibration_idx]
-        # cv="prefit" = don't retrain the model, just fit a sigmoid on top
         calibrator = CalibratedClassifierCV(model, cv="prefit", method=args.calibrate)
         calibrator.fit(X_cal, y_cal)
         y_prob = calibrator.predict_proba(X_test)[:, 1]
         calibration_info = {"method": args.calibrate, "patients": int(len(np.unique(calibration_pids))), "fraction": float(args.calibration_fraction), "max_patients": int(args.calibration_max_patients)}
 
-    # --- STEP 7: COMPUTE ALL METRICS ---
+    # Compute all performance metrics on the test set.
     metrics         = compute_basic_metrics(y_test, y_prob)
     patient_metrics = compute_patient_level_metrics(pid_test, y_test, y_prob)
+
+    # Brier score: average squared error between predicted probability and actual label.
+    # Lower is better. 0.0 is perfect; 0.25 is what a model that always predicts 0.5 gets.
+    # We compute it for both raw and calibrated probabilities to show calibration improved it.
     brier           = float(brier_score_loss(y_test, y_prob))
     brier_raw       = float(brier_score_loss(y_test, y_prob_raw))
 
-    # Grid search for best threshold (maximizes official utility)
+    # Search for the threshold that maximizes the official utility score on the test set.
     thresholds = np.linspace(0.1, 0.9, 33)
     utilities  = []
     for thr in thresholds:
@@ -179,9 +189,8 @@ def main() -> None:
     }
     save_json(output_dir / "metrics.json", report)
 
-    # --- STEP 8: GENERATE VISUALIZATIONS ---
-
-    # Plot 1: Utility score vs threshold — shows where peak utility occurs
+    # Plot how utility changes as we raise or lower the alert threshold.
+    # This helps visualize where the best operating point is.
     plt.figure(figsize=(5, 4))
     plt.plot(thresholds, utilities, marker="o")
     plt.xlabel("Alert threshold")
@@ -191,8 +200,9 @@ def main() -> None:
     plt.savefig(output_dir / "utility_curve.png")
     plt.close()
 
-    # Plot 2: Calibration curve — predicted probability vs actual sepsis frequency
-    # Perfect calibration = diagonal line. Points above = underestimates risk.
+    # Calibration curve: compares predicted probabilities against actual outcome rates.
+    # A perfectly calibrated model lies on the diagonal (predicted 60% = 60% actually got sepsis).
+    # Points above the diagonal mean the model is underestimating risk.
     frac_pos,     mean_pred     = calibration_curve(y_test, y_prob,     n_bins=10, strategy="quantile")
     frac_pos_raw, mean_pred_raw = calibration_curve(y_test, y_prob_raw, n_bins=10, strategy="quantile")
     plt.figure(figsize=(5, 4))
@@ -207,7 +217,9 @@ def main() -> None:
     plt.savefig(output_dir / "calibration_curve.png")
     plt.close()
 
-    # Plot 3: Lead time histogram — distribution of hours of warning given to clinicians
+    # Lead time histogram: for sepsis patients who were caught early, how far in advance
+    # did the first alert fire? Each bar is a bin of hours. A tall bar at 6h means many
+    # patients received 6 hours of warning before their sepsis onset.
     lead_times = lead_time_distribution(pid_test, hours_test, onset_test, y_test, y_prob, best_thr, alert_k=args.alert_k)
     if lead_times.size:
         plt.figure(figsize=(5, 4))
@@ -220,6 +232,9 @@ def main() -> None:
         plt.close()
 
     if args.quality_report:
+        # Quality gating: if we only keep hours with high data quality, does performance improve?
+        # Each row in the output drops the lowest-quality hours at an increasing threshold,
+        # showing the tradeoff between data coverage and prediction quality.
         quality_test = quality[test_idx]
         percentiles  = _parse_percentiles(args.quality_percentiles)
         rows = []
@@ -238,6 +253,7 @@ def main() -> None:
 
 
 def _parse_percentiles(value: str) -> list[int]:
+    # Accepts either "0,10,20,30" (comma list) or "0:50:5" (start:end:step range).
     if "," in value:
         return [int(v) for v in value.split(",")]
     if ":" in value:
@@ -247,6 +263,8 @@ def _parse_percentiles(value: str) -> list[int]:
 
 
 def _plot_quality_tradeoff(rows: list[dict], path: Path) -> None:
+    # Plots AUROC and early detection rate as a function of coverage (fraction of hours kept).
+    # As we raise the quality bar, coverage drops but performance on retained hours may improve.
     if not rows:
         return
     coverages = [r["coverage"] for r in rows]

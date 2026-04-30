@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+# PURPOSE: Generate publication-quality visuals for the science fair display board.
+# OUTPUTS: A collection of PNG plots -- risk trajectories, calibration curves,
+#          subgroup comparison bars, policy tradeoff curves, and summary stats.
+# RUN:     python scripts/make_board_visuals.py
+#              --data-dir data/train --weights outputs/utility/model.joblib
+#              --medians outputs/utility/medians.json
+#              --output-dir outputs/board_visuals
+
 import argparse
 import json
 from pathlib import Path

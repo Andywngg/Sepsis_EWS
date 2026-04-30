@@ -1,5 +1,22 @@
 from __future__ import annotations
 
+# Robustness test: how well does the model hold up when the data is even messier than usual?
+#
+# The PhysioNet dataset already has about 70% missing values. In real hospitals the data
+# can be worse: equipment failures, late chart entry, or less frequent lab draws all
+# increase missingness. This script tests whether the model degrades gracefully by
+# ARTIFICIALLY dropping an additional 10%, 20%, or 30% of the observed measurements
+# at random, then running the trained model on the degraded data.
+#
+# The key distinction: we only drop values that WERE present. We never add
+# missingness where there was already a NaN. Structural columns like Age, Gender,
+# and SepsisLabel are excluded from dropping so the labels remain intact.
+#
+# Run: python scripts/missingness_stress.py
+#      --data-dir data/train --weights outputs/utility/model.joblib
+#      --medians outputs/utility/medians.json --drop-rates 0,0.1,0.2,0.3
+#      --output-dir outputs/missingness_stress
+
 import argparse
 import json
 from pathlib import Path
@@ -35,11 +52,19 @@ def apply_missingness(
     exclude_cols: set[str],
     rng: np.random.Generator,
 ) -> pd.DataFrame:
+    # Randomly replace a fraction of observed values with NaN.
+    # exclude_cols are never touched (labels, demographics, etc.).
     if drop_rate <= 0:
         return df
     cols = [c for c in df.columns if c not in exclude_cols]
     out = df.copy()
+
+    # observed is a boolean mask: True where a value is NOT NaN.
+    # We only drop values that already exist (never change NaN to NaN).
     observed = out[cols].notna().values
+    # Generate a random draw for every cell. If the draw is less than drop_rate,
+    # that cell is a candidate for dropping. Combined with "observed", we only
+    # actually drop cells that had a real value.
     drop_mask = rng.random(size=observed.shape) < drop_rate
     to_drop = drop_mask & observed
     values = out[cols].values
@@ -56,6 +81,8 @@ def build_dataset_with_missingness(
     exclude_cols: set[str],
     seed: int,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    # Load all patients and apply the specified drop rate to each one.
+    # A different random seed is used per patient to avoid correlated dropout patterns.
     all_x = []
     all_y = []
     all_pid = []
@@ -119,6 +146,7 @@ def main() -> None:
     exclude_cols = set(_parse_list(args.exclude_cols))
     drop_rates = _parse_rates(args.drop_rates)
 
+    # Restrict evaluation to the held-out test patients if a split file is provided.
     files = list_patient_files(data_dir)
     if args.test_patients:
         split = json.loads(Path(args.test_patients).read_text(encoding="utf-8"))
@@ -129,6 +157,8 @@ def main() -> None:
 
     summary_rows = []
     for rate in drop_rates:
+        # Build the dataset with the specified amount of artificial missingness.
+        # A different seed per rate ensures the random drops differ across runs.
         X, y, patient_ids, hours, onset_hours = build_dataset_with_missingness(
             files,
             drop_rate=rate,
@@ -138,6 +168,7 @@ def main() -> None:
             seed=args.seed + int(rate * 1000),
         )
 
+        # Apply the same imputation and scaling as during training.
         X = np.where(np.isnan(X), medians, X)
         X = scaler.transform(X)
         y_prob = model.predict_proba(X)[:, 1]
@@ -145,12 +176,8 @@ def main() -> None:
         metrics = compute_basic_metrics(y, y_prob)
         patient_metrics = compute_patient_level_metrics(patient_ids, y, y_prob)
         brier = float(brier_score_loss(y, y_prob))
-        policy = early_warning_stats(
-            patient_ids, hours, onset_hours, y, y_prob, args.threshold, alert_k=1
-        )
-        alert_burden = alert_burden_stats(
-            patient_ids, hours, y, y_prob, args.threshold, alert_k=1
-        )
+        policy = early_warning_stats(patient_ids, hours, onset_hours, y, y_prob, args.threshold, alert_k=1)
+        alert_burden = alert_burden_stats(patient_ids, hours, y, y_prob, args.threshold, alert_k=1)
         official_util = compute_official_utility(patient_ids, y, y_prob, args.threshold, alert_k=1)
 
         row = {

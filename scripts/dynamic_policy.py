@@ -1,5 +1,24 @@
 from __future__ import annotations
 
+# Trend-adaptive alert policy: lowers the alert threshold when the risk score is rising
+# quickly, and raises it when the risk score is falling.
+#
+# The standard policy fires an alert whenever probability >= fixed_threshold.
+# This does not distinguish between a patient whose risk jumped from 0.05 to 0.20 in
+# one hour (rapidly deteriorating) versus a patient who has been stable at 0.20 for
+# 12 hours (elevated but not changing). The first patient may need more urgent attention.
+#
+# The dynamic policy adjusts the threshold each hour based on the trend:
+#   adj_threshold = base_threshold - k * (trend / trend_scale)
+# where trend = p[t] - p[t-1] (how much did the risk score change this hour?).
+# trend_scale normalizes the trend so that k has the same meaning across all patients.
+# k controls how aggressively the threshold responds to trends.
+# k is grid-searched on a held-out calibration set to find the value that maximizes utility.
+#
+# Run: python scripts/dynamic_policy.py
+#      --data-dir data/train --weights outputs/utility/model.joblib
+#      --medians outputs/utility/medians.json --output-dir outputs/dynamic_policy
+
 import argparse
 import json
 from pathlib import Path
@@ -33,6 +52,9 @@ def _load_split(patient_ids: np.ndarray, weights_path: Path) -> tuple[np.ndarray
 
 
 def _official_utility_from_predictions(patient_ids: np.ndarray, labels: np.ndarray, preds: np.ndarray) -> float:
+    # Computes the normalized PhysioNet utility score from pre-computed binary predictions.
+    # Used internally because dynamic_policy already converts probabilities to alerts
+    # before calling utility; the standard compute_official_utility takes probabilities.
     dt_early = -12
     dt_optimal = -6
     dt_late = 3
@@ -51,47 +73,22 @@ def _official_utility_from_predictions(patient_ids: np.ndarray, labels: np.ndarr
         y = labels[mask]
         p = preds[mask]
 
-        observed += compute_prediction_utility(
-            y,
-            p,
-            dt_early=dt_early,
-            dt_optimal=dt_optimal,
-            dt_late=dt_late,
-            max_u_tp=max_u_tp,
-            min_u_fn=min_u_fn,
-            u_fp=u_fp,
-            u_tn=u_tn,
-        )
+        observed += compute_prediction_utility(y, p, dt_early=dt_early, dt_optimal=dt_optimal,
+            dt_late=dt_late, max_u_tp=max_u_tp, min_u_fn=min_u_fn, u_fp=u_fp, u_tn=u_tn)
 
+        # Compute the score for the perfect oracle (always alerts in the optimal window).
         best_preds = np.zeros_like(y)
         if np.any(y):
             t_sepsis = np.argmax(y) - dt_optimal
             start = max(0, t_sepsis + dt_early)
             end = min(t_sepsis + dt_late + 1, len(y))
             best_preds[start:end] = 1
-        best += compute_prediction_utility(
-            y,
-            best_preds,
-            dt_early=dt_early,
-            dt_optimal=dt_optimal,
-            dt_late=dt_late,
-            max_u_tp=max_u_tp,
-            min_u_fn=min_u_fn,
-            u_fp=u_fp,
-            u_tn=u_tn,
-        )
+        best += compute_prediction_utility(y, best_preds, dt_early=dt_early, dt_optimal=dt_optimal,
+            dt_late=dt_late, max_u_tp=max_u_tp, min_u_fn=min_u_fn, u_fp=u_fp, u_tn=u_tn)
 
-        inaction += compute_prediction_utility(
-            y,
-            np.zeros_like(y),
-            dt_early=dt_early,
-            dt_optimal=dt_optimal,
-            dt_late=dt_late,
-            max_u_tp=max_u_tp,
-            min_u_fn=min_u_fn,
-            u_fp=u_fp,
-            u_tn=u_tn,
-        )
+        # Compute the score for always doing nothing (never alerting).
+        inaction += compute_prediction_utility(y, np.zeros_like(y), dt_early=dt_early,
+            dt_optimal=dt_optimal, dt_late=dt_late, max_u_tp=max_u_tp, min_u_fn=min_u_fn, u_fp=u_fp, u_tn=u_tn)
 
     denom = best - inaction
     if denom == 0:
@@ -100,6 +97,7 @@ def _official_utility_from_predictions(patient_ids: np.ndarray, labels: np.ndarr
 
 
 def _build_index(patient_ids: np.ndarray) -> dict[str, np.ndarray]:
+    # Pre-build a mapping from patient ID to row indices for fast per-patient access.
     return {pid: np.where(patient_ids == pid)[0] for pid in np.unique(patient_ids)}
 
 
@@ -111,14 +109,29 @@ def _apply_dynamic_policy(
     k: float,
     alert_k: int,
 ) -> np.ndarray:
+    # Apply the dynamic threshold policy to all patients.
+    # For each patient, compute the per-hour trend and adjust the threshold accordingly.
     preds = np.zeros_like(probabilities, dtype=int)
     for pid, idx in idx_by_pid.items():
         p = probabilities[idx]
+
+        # trend[t] = p[t] - p[t-1]: positive when risk is rising, negative when falling.
+        # trend[0] = 0 because there is no previous hour.
         trend = np.zeros_like(p)
         trend[1:] = p[1:] - p[:-1]
+
+        # Normalize the trend by trend_scale so k has a consistent meaning.
+        # np.clip prevents extreme adjustments from unusual single-hour spikes.
         adj = k * np.clip(trend / max(trend_scale, 1e-6), -1.0, 1.0)
+
+        # Subtract the adjustment: rising trend lowers the threshold (easier to alert),
+        # falling trend raises the threshold (harder to alert).
         thr = np.clip(base_threshold - adj, 0.01, 0.99)
+
+        # Fire when the probability exceeds this patient's adjusted threshold.
         raw = (p >= thr).astype(int)
+
+        # Optional consecutive filter: require alert_k consecutive hours above threshold.
         if alert_k <= 1:
             preds[idx] = raw
             continue
@@ -142,6 +155,8 @@ def _early_warning_from_predictions(
     labels: np.ndarray,
     preds: np.ndarray,
 ) -> dict:
+    # Same logic as early_warning_stats in utils.py but operates on pre-computed
+    # binary predictions instead of probabilities plus a threshold.
     patients = np.unique(patient_ids)
     lead_times = []
     early_hits = 0
@@ -188,6 +203,7 @@ def _alert_burden_from_predictions(
     labels: np.ndarray,
     preds: np.ndarray,
 ) -> dict:
+    # Compute alert burden from binary predictions rather than probabilities.
     patients = np.unique(patient_ids)
     total_alerts = 0.0
     total_days = 0.0
@@ -250,6 +266,8 @@ def main() -> None:
     model = bundle["model"]
     scaler = bundle["scaler"]
 
+    # Use a slice of training patients as a calibration set for both probability
+    # calibration and for tuning the k parameter.
     train_pids = np.unique(patient_ids[train_idx])
     rng = np.random.default_rng(42)
     rng.shuffle(train_pids)
@@ -278,7 +296,10 @@ def main() -> None:
         p_cal = model.predict_proba(X_cal)[:, 1]
         p_test = model.predict_proba(X_test)[:, 1]
 
-    # Trend scale from calibration set
+    # Compute the typical magnitude of hourly risk changes across calibration patients.
+    # The 95th percentile of absolute trend values becomes trend_scale.
+    # Dividing by this scale means k=0.1 causes the same threshold adjustment across
+    # all patients regardless of the absolute scale of their probability changes.
     cal_idx_by_pid = _build_index(patient_ids[cal_idx])
     cal_trends = []
     for idx in cal_idx_by_pid.values():
@@ -287,16 +308,13 @@ def main() -> None:
             cal_trends.append(np.abs(np.diff(p)))
     trend_scale = float(np.quantile(np.concatenate(cal_trends) if cal_trends else np.array([1.0]), 0.95))
 
+    # Grid-search k on the calibration set. We test each k value, compute the utility
+    # of the resulting alert policy, and keep the k with the highest score.
     k_grid = [float(k.strip()) for k in args.k_grid.split(",") if k.strip()]
     k_results = []
     for k in k_grid:
         preds_cal = _apply_dynamic_policy(
-            cal_idx_by_pid,
-            p_cal,
-            args.base_threshold,
-            trend_scale,
-            k,
-            args.alert_k,
+            cal_idx_by_pid, p_cal, args.base_threshold, trend_scale, k, args.alert_k
         )
         util = _official_utility_from_predictions(patient_ids[cal_idx], y_cal, preds_cal)
         k_results.append({"k": k, "utility": util})
@@ -304,15 +322,14 @@ def main() -> None:
     best = max(k_results, key=lambda r: r["utility"])
     best_k = float(best["k"])
 
+    # Apply the best k to the held-out test set.
     test_idx_by_pid = _build_index(pid_test)
-    preds_test = _apply_dynamic_policy(
-        test_idx_by_pid, p_test, args.base_threshold, trend_scale, best_k, args.alert_k
-    )
+    preds_test = _apply_dynamic_policy(test_idx_by_pid, p_test, args.base_threshold, trend_scale, best_k, args.alert_k)
     util_test = _official_utility_from_predictions(pid_test, y_test, preds_test)
     policy = _early_warning_from_predictions(pid_test, hours_test, onset_test, y_test, preds_test)
     burden = _alert_burden_from_predictions(pid_test, hours_test, y_test, preds_test)
 
-    # Static baseline for comparison
+    # Compare against a simple static threshold policy as a baseline.
     static_preds = (p_test >= args.base_threshold).astype(int)
     static_util = _official_utility_from_predictions(pid_test, y_test, static_preds)
 
@@ -341,10 +358,12 @@ def main() -> None:
 
     save_json(output_dir / "dynamic_policy.json", report)
 
+    # Show how utility on the calibration set changed as k was varied.
+    # The best k sits at the peak of this curve.
     plt.figure(figsize=(5, 4))
     plt.plot([r["k"] for r in k_results], [r["utility"] for r in k_results], marker="o")
     plt.xlabel("Trend sensitivity (k)")
-    plt.ylabel("Official utility (calibration)")
+    plt.ylabel("Official utility (calibration set)")
     plt.title("Dynamic Threshold Tuning")
     plt.tight_layout()
     plt.savefig(output_dir / "dynamic_policy_k_sweep.png")

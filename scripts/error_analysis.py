@@ -1,5 +1,18 @@
 from __future__ import annotations
 
+# PURPOSE: Per-patient error breakdown -- who did the model miss, and why?
+# METHOD:  For each test patient, classify as TP/FP/FN/TN at the patient level
+#          (did any alert fire? did the patient get sepsis?).
+#          Then compare the DATA QUALITY and ICU STAY LENGTH of each group.
+#          e.g. "FN patients had lower data quality (more missing values)" explains
+#          why they were missed. Also computes lead times for caught sepsis patients.
+# OUTPUT:  error_analysis.json and error_analysis.md
+# RUN:     python scripts/error_analysis.py
+#              --data-dir data/train --weights outputs/utility/model.joblib
+#              --medians outputs/utility/medians.json
+#              --metrics outputs/eval/metrics.json
+#              --output-dir outputs/error_analysis
+
 import argparse
 import json
 from pathlib import Path

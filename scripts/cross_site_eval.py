@@ -1,5 +1,26 @@
 from __future__ import annotations
 
+# Cross-hospital generalization test: does the model work at a hospital it was not
+# trained on?
+#
+# The PhysioNet dataset was collected from two hospital systems (called A and B here).
+# A model trained only on hospital A may have learned quirks specific to that hospital:
+# their typical lab ranges, their ICU protocols, or their measurement frequencies.
+# When deployed at hospital B (which it has never seen), performance may drop sharply.
+# This is called "domain shift" and it is one of the biggest barriers to deploying
+# clinical ML models in practice.
+#
+# This script runs both directions (train A, test B; then train B, test A) to show
+# how well the model generalizes across sites. The --patient-normalize flag is critical
+# here: z-scoring each patient against their own baseline removes hospital-level
+# systematic differences (like "hospital B measures creatinine on a different scale"),
+# which dramatically improves cross-site generalization.
+#
+# Run: python scripts/cross_site_eval.py
+#      --combined-dir data/train --split-n 20336 --patient-normalize
+#      --model hgb --utility-weighted --feature-set enhanced
+#      --output-dir outputs/cross_site
+
 import argparse
 import json
 from pathlib import Path
@@ -26,6 +47,7 @@ from sepsis_ews.utils import (
 
 
 def _fit_model(model_name: str, X_train: np.ndarray, y_train: np.ndarray, weights: np.ndarray):
+    # Train the chosen classifier. The model is the same one used in train.py.
     if model_name == "logreg":
         model = LogisticRegression(max_iter=200, n_jobs=1)
     else:
@@ -35,6 +57,9 @@ def _fit_model(model_name: str, X_train: np.ndarray, y_train: np.ndarray, weight
 
 
 def _prepare_X(X_train: np.ndarray, X_test: np.ndarray):
+    # Apply imputation and scaling using only training-side statistics.
+    # medians and scaler are fit on X_train; X_test only gets transformed.
+    # This mirrors the preprocessing in train.py exactly.
     medians = np.nanmedian(X_train, axis=0)
     medians = np.where(np.isnan(medians), 0.0, medians)
     X_train = np.where(np.isnan(X_train), medians, X_train)
@@ -56,6 +81,8 @@ def _evaluate(
     alert_k: int,
     calibrator: CalibratedClassifierCV | None = None,
 ):
+    # Run full evaluation on a test set and return a dictionary of all metrics.
+    # If a calibrator is provided, use it instead of the raw model probabilities.
     if calibrator is None:
         y_prob = model.predict_proba(X_test)[:, 1]
     else:
@@ -64,14 +91,8 @@ def _evaluate(
     patient_metrics = compute_patient_level_metrics(pid_test, y_test, y_prob)
     thresholds = np.linspace(0.1, 0.9, 33)
     best_thr, best_util = select_threshold_by_utility(
-        pid_test,
-        hours_test,
-        onset_test,
-        y_test,
-        y_prob,
-        thresholds,
-        utility_kind=utility_kind,
-        alert_k=alert_k,
+        pid_test, hours_test, onset_test, y_test, y_prob, thresholds,
+        utility_kind=utility_kind, alert_k=alert_k,
     )
     policy = early_warning_stats(pid_test, hours_test, onset_test, y_test, y_prob, best_thr, alert_k=alert_k)
 
@@ -113,21 +134,18 @@ def _run_target_eval(
     calibration_fraction: float,
     calibration_max_patients: int,
 ):
+    # Evaluate on the target (unseen) hospital. Optionally apply a small calibration
+    # step using a subset of target hospital patients to adjust for any systematic
+    # probability shift between the training and target distributions.
+    # This is called "target calibration" and uses only a small slice of the target
+    # data, so the rest can still serve as the evaluation set.
     if calibrate_target == "none":
-        report = _evaluate(
-            model,
-            X_target,
-            y_target,
-            pid_target,
-            hours_target,
-            onset_target,
-            utility_kind=utility_kind,
-            alert_k=alert_k,
-            calibrator=None,
-        )
+        report = _evaluate(model, X_target, y_target, pid_target, hours_target,
+            onset_target, utility_kind=utility_kind, alert_k=alert_k, calibrator=None)
         report["calibration"] = {"method": "none", "patients": 0}
         return report
 
+    # Split the target patients: a small fraction for calibration, the rest for evaluation.
     target_pids = np.unique(pid_target)
     rng = np.random.default_rng(42)
     rng.shuffle(target_pids)
@@ -138,34 +156,17 @@ def _run_target_eval(
     eval_idx = np.array([i for i, pid in enumerate(pid_target) if pid not in cal_pids], dtype=int)
 
     if len(cal_idx) == 0 or len(eval_idx) == 0:
-        report = _evaluate(
-            model,
-            X_target,
-            y_target,
-            pid_target,
-            hours_target,
-            onset_target,
-            utility_kind=utility_kind,
-            alert_k=alert_k,
-            calibrator=None,
-        )
+        report = _evaluate(model, X_target, y_target, pid_target, hours_target,
+            onset_target, utility_kind=utility_kind, alert_k=alert_k, calibrator=None)
         report["calibration"] = {"method": "none", "patients": 0}
         return report
 
     calibrator = CalibratedClassifierCV(model, cv="prefit", method=calibrate_target)
     calibrator.fit(X_target[cal_idx], y_target[cal_idx])
 
-    report = _evaluate(
-        model,
-        X_target[eval_idx],
-        y_target[eval_idx],
-        pid_target[eval_idx],
-        hours_target[eval_idx],
-        onset_target[eval_idx],
-        utility_kind=utility_kind,
-        alert_k=alert_k,
-        calibrator=calibrator,
-    )
+    report = _evaluate(model, X_target[eval_idx], y_target[eval_idx], pid_target[eval_idx],
+        hours_target[eval_idx], onset_target[eval_idx], utility_kind=utility_kind,
+        alert_k=alert_k, calibrator=calibrator)
     report["calibration"] = {
         "method": calibrate_target,
         "patients": int(len(cal_pids)),
@@ -197,6 +198,8 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if args.combined_dir:
+        # If using a single combined directory, split the sorted file list at split_n.
+        # Files 0..split_n-1 are hospital A; the rest are hospital B.
         files = list_patient_files(Path(args.combined_dir))
         files = sorted(files)
         a_files = files[: args.split_n]
@@ -214,56 +217,42 @@ def main() -> None:
         if not args.data_dir_a or not args.data_dir_b:
             raise ValueError("Provide --data-dir-a and --data-dir-b, or use --combined-dir.")
         Xa, ya, pida, ha, onsa, _, _ = build_dataset(
-            Path(args.data_dir_a),
-            max_patients=args.max_patients,
-            feature_set=args.feature_set,
-            patient_normalize=args.patient_normalize,
+            Path(args.data_dir_a), max_patients=args.max_patients,
+            feature_set=args.feature_set, patient_normalize=args.patient_normalize,
         )
         Xb, yb, pidb, hb, onsb, _, _ = build_dataset(
-            Path(args.data_dir_b),
-            max_patients=args.max_patients,
-            feature_set=args.feature_set,
-            patient_normalize=args.patient_normalize,
+            Path(args.data_dir_b), max_patients=args.max_patients,
+            feature_set=args.feature_set, patient_normalize=args.patient_normalize,
         )
 
-    # Train on A, evaluate on B.
+    # Train on hospital A, test on hospital B.
+    # _prepare_X fits the scaler/medians on A's training data only.
     Xa_train, Xb_test, _, _ = _prepare_X(Xa, Xb)
     weights_a = compute_sample_weights(ya, ha, onsa, args.utility_weighted)
     model_a = _fit_model(args.model, Xa_train, ya, weights_a)
     report_a_to_b = _run_target_eval(
-        model_a,
-        Xb_test,
-        yb,
-        pidb,
-        hb,
-        onsb,
-        utility_kind=args.utility,
-        alert_k=args.alert_k,
+        model_a, Xb_test, yb, pidb, hb, onsb,
+        utility_kind=args.utility, alert_k=args.alert_k,
         calibrate_target=args.calibrate_target,
         calibration_fraction=args.calibration_fraction,
         calibration_max_patients=args.calibration_max_patients,
     )
     save_json(output_dir / "a_to_b_metrics.json", report_a_to_b)
 
-    # Train on B, evaluate on A.
+    # Train on hospital B, test on hospital A (the other direction).
     Xb_train, Xa_test, _, _ = _prepare_X(Xb, Xa)
     weights_b = compute_sample_weights(yb, hb, onsb, args.utility_weighted)
     model_b = _fit_model(args.model, Xb_train, yb, weights_b)
     report_b_to_a = _run_target_eval(
-        model_b,
-        Xa_test,
-        ya,
-        pida,
-        ha,
-        onsa,
-        utility_kind=args.utility,
-        alert_k=args.alert_k,
+        model_b, Xa_test, ya, pida, ha, onsa,
+        utility_kind=args.utility, alert_k=args.alert_k,
         calibrate_target=args.calibrate_target,
         calibration_fraction=args.calibration_fraction,
         calibration_max_patients=args.calibration_max_patients,
     )
     save_json(output_dir / "b_to_a_metrics.json", report_b_to_a)
 
+    # Write a human-readable summary comparing both directions.
     summary = []
     summary.append("# Cross-Site Generalization\n\n")
     summary.append(f"- Model: {args.model}\n")

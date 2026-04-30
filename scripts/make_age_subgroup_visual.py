@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+# PURPOSE: Bar chart comparing AUROC and early detection rate across age groups.
+# Reads subgroup_analysis.json and renders a grouped bar chart showing
+# whether the model performs equitably across patient age buckets
+# (<40, 40-59, 60-79, >=80).
+# RUN:     python scripts/make_age_subgroup_visual.py
+#              --subgroup outputs/subgroup/subgroup_analysis.json
+#              --output outputs/visuals/age_subgroup.png
+
 import argparse
 import json
 from pathlib import Path

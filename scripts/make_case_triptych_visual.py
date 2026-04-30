@@ -1,5 +1,15 @@
 from __future__ import annotations
 
+# PURPOSE: 3-panel "triptych" plot showing three representative patient trajectories.
+# Panel 1: early detection (model fired hours before onset -- the ideal case)
+# Panel 2: late detection (model fired after onset -- still useful but suboptimal)
+# Panel 3: false alarm (model fired on a non-sepsis patient -- the error case)
+# This is the main visual for science fair demonstration and presentations.
+# RUN:     python scripts/make_case_triptych_visual.py
+#              --data-dir data/train --weights outputs/utility/model.joblib
+#              --medians outputs/utility/medians.json
+#              --output outputs/visuals/triptych.png
+
 import argparse
 import json
 from pathlib import Path

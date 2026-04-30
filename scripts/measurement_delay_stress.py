@@ -1,5 +1,18 @@
 from __future__ import annotations
 
+# PURPOSE: Robustness test for lab result reporting delays.
+# PROBLEM: In real hospitals, lab results often don't appear in the EHR immediately.
+#          A blood draw at hour 5 might not show up until hour 7 due to processing time.
+#          This test checks whether the model still works if all lab values are shifted
+#          1, 2, or 3 hours later (simulating reporting delay).
+# METHOD:  For each delay level, use pd.DataFrame.shift(delay) on all clinical variables
+#          (excluding static fields like Age and SepsisLabel). Run the trained model.
+# OUTPUT:  delay_00.json, delay_01.json, ... and delay_summary.json
+# RUN:     python scripts/measurement_delay_stress.py
+#              --data-dir data/train --weights outputs/utility/model.joblib
+#              --medians outputs/utility/medians.json --delays 0,1,2,3
+#              --output-dir outputs/delay_stress
+
 import argparse
 import json
 from pathlib import Path

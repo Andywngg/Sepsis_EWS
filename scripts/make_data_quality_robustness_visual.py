@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+# PURPOSE: Line chart showing how AUROC and utility degrade as more data is removed.
+# Reads missingness_summary.json and plots AUROC vs drop rate.
+# A flat curve means the model is robust to missing data; a steep drop means it's fragile.
+# RUN:     python scripts/make_data_quality_robustness_visual.py
+#              --missingness outputs/missingness_stress/missingness_summary.json
+#              --output outputs/visuals/robustness.png
+
 import argparse
 import json
 from pathlib import Path

@@ -1,5 +1,14 @@
 from __future__ import annotations
 
+# PURPOSE: Generate a structured model card document describing the trained model.
+# A model card is a standardized ML disclosure document covering:
+#   intended use, training data, performance metrics, limitations, and ethical considerations.
+# This format is required by responsible AI practices and lets judges/clinicians
+# understand what the model does and doesn't do before deploying it.
+# RUN:     python scripts/make_model_card.py
+#              --metrics outputs/eval/metrics.json
+#              --output-dir outputs/model_card
+
 import argparse
 import json
 from pathlib import Path

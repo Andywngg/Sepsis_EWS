@@ -1,5 +1,18 @@
 from __future__ import annotations
 
+# Side-by-side comparison of two trained models.
+# Reads the metrics.json files saved by train.py or eval.py for each model
+# and produces a comparison table showing which model wins on each metric.
+#
+# Typical use: compare the simple logistic regression baseline against the main
+# HistGradientBoosting model to justify why the more complex model is needed.
+#
+# Run: python scripts/compare_models.py
+#      --baseline outputs/baseline/metrics.json
+#      --improved outputs/utility/metrics.json
+#      --output-csv outputs/comparison/comparison.csv
+#      --output-md  outputs/comparison/comparison.md
+
 import argparse
 import csv
 import json
@@ -22,6 +35,8 @@ def main() -> None:
     base = load_metrics(Path(args.baseline))
     imp = load_metrics(Path(args.improved))
 
+    # Extract the key metrics from both JSON files using .get() with a default of 0
+    # so the script does not crash if a metric is missing from an older output file.
     rows = [
         {
             "model": "baseline",
@@ -47,6 +62,7 @@ def main() -> None:
         },
     ]
 
+    # Write the CSV version for spreadsheet viewing.
     out_csv = Path(args.output_csv)
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     with out_csv.open("w", encoding="utf-8", newline="") as f:
@@ -54,6 +70,7 @@ def main() -> None:
         writer.writeheader()
         writer.writerows(rows)
 
+    # Write the Markdown version for display in GitHub or the summary report.
     out_md = Path(args.output_md)
     header = "| model | auroc | auprc | utility | official_utility | accuracy | f_measure | early_detection_rate | false_alert_rate |\n"
     sep = "|---|---|---|---|---|---|---|---|---|\n"

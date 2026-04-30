@@ -1,5 +1,22 @@
 from __future__ import annotations
 
+# Computes 95% confidence intervals for all key metrics using bootstrapping.
+#
+# Why do we need confidence intervals? A single number like AUROC=0.847 tells us
+# the model's performance on this specific test set, but it does not tell us how
+# stable that number is. If we had slightly different test patients, would it be 0.80?
+# Or 0.89? Bootstrapping answers this by repeatedly re-sampling the test patients
+# with replacement and recomputing all metrics each time.
+#
+# With 200 bootstrap resamples, we get 200 different AUROC values. The 2.5th percentile
+# and 97.5th percentile of those 200 values form the 95% confidence interval.
+# This answers: "how stable is our result if we had slightly different test patients?"
+#
+# Run: python scripts/bootstrap_ci.py
+#      --data-dir data/train --weights outputs/utility/model.joblib
+#      --medians outputs/utility/medians.json
+#      --output outputs/bootstrap/ci.json --n-bootstrap 200
+
 import argparse
 import json
 from pathlib import Path
@@ -31,11 +48,14 @@ def _apply_calibration(
     fraction: float,
     max_patients: int,
 ):
+    # Fit a calibration wrapper on a small subset of training patients.
+    # Returns None if calibration is disabled or no patients are available.
     if method == "none":
         return None
     train_pids = np.unique(patient_ids)
     rng = np.random.default_rng(42)
     rng.shuffle(train_pids)
+    # Use at most max_patients calibration patients to keep this step fast.
     n_cal = max(1, int(len(train_pids) * fraction))
     n_cal = min(n_cal, max_patients)
     cal_pids = set(train_pids[:n_cal])
@@ -45,12 +65,15 @@ def _apply_calibration(
     X_cal = np.where(np.isnan(X[cal_idx]), medians, X[cal_idx])
     X_cal = scaler.transform(X_cal)
     y_cal = y[cal_idx]
+    # cv="prefit" means: do not retrain the model, only fit the sigmoid on top.
     calibrator = CalibratedClassifierCV(model, cv="prefit", method=method)
     calibrator.fit(X_cal, y_cal)
     return calibrator
 
 
 def bootstrap_ci(values: list[float]) -> dict:
+    # Given a list of metric values from all bootstrap resamples, return the mean
+    # and the 95% confidence interval bounds (2.5th and 97.5th percentiles).
     arr = np.array(values, dtype=float)
     return {
         "mean": float(np.mean(arr)),
@@ -83,6 +106,8 @@ def main() -> None:
         Path(args.data_dir), max_patients=args.max_patients, feature_set=args.feature_set
     )
 
+    # Load the saved test patient list so we bootstrap over the exact same test set
+    # that was used to evaluate the model during training.
     weights_dir = Path(args.weights).parent
     split_file = weights_dir / "test_patients.json"
     if split_file.exists():
@@ -111,6 +136,7 @@ def main() -> None:
     hours_test = hours[test_idx]
     onset_test = onset_hours[test_idx]
 
+    # Optionally fit a calibration layer on training patients.
     calibrator = _apply_calibration(
         model,
         X[train_idx],
@@ -128,9 +154,12 @@ def main() -> None:
     else:
         y_prob = calibrator.predict_proba(X_test)[:, 1]
 
+    # Pre-build a lookup table: patient ID -> row indices in the test set.
+    # This avoids re-scanning all rows on every bootstrap iteration.
     unique_pids = np.unique(pid_test)
     idx_by_pid = {pid: np.where(pid_test == pid)[0] for pid in unique_pids}
 
+    # Containers that accumulate one value per bootstrap resample for each metric.
     metrics_samples = {
         "auroc": [],
         "auprc": [],
@@ -141,6 +170,8 @@ def main() -> None:
     }
     thresholds = np.linspace(0.1, 0.9, 33)
 
+    # Support for checkpointing: if the run is interrupted, we can resume from the last
+    # saved state rather than starting over from bootstrap iteration 0.
     checkpoint_path = Path(args.checkpoint) if args.checkpoint else None
     iteration_seeds: list[int]
     start_idx = 0
@@ -152,6 +183,8 @@ def main() -> None:
         if len(iteration_seeds) != args.n_bootstrap:
             raise ValueError("Checkpoint n_bootstrap does not match current run.")
     else:
+        # Pre-generate all random seeds so the bootstrap is fully reproducible even if
+        # we resume from a checkpoint midway through.
         rng = np.random.default_rng(args.seed)
         iteration_seeds = rng.integers(0, 2**32 - 1, size=args.n_bootstrap).tolist()
         if checkpoint_path:
@@ -179,7 +212,14 @@ def main() -> None:
 
     for i in range(start_idx, args.n_bootstrap):
         rng = np.random.default_rng(iteration_seeds[i])
+
+        # Sample the patient list with replacement. Some patients appear multiple times;
+        # some are left out entirely. This simulates having a slightly different cohort.
         sampled = rng.choice(unique_pids, size=len(unique_pids), replace=True)
+
+        # Gather all the row indices for the sampled patients.
+        # Append a suffix to the patient ID each time the same patient is sampled twice,
+        # so patient-level metrics do not accidentally merge two copies of the same patient.
         idxs = []
         new_pids = []
         for j, pid in enumerate(sampled):
@@ -198,6 +238,7 @@ def main() -> None:
         if args.fixed_threshold is not None:
             best_thr = float(args.fixed_threshold)
         else:
+            # Find the best threshold for this resample.
             best_thr = float(
                 thresholds[
                     np.argmax(
@@ -215,6 +256,7 @@ def main() -> None:
         metrics_samples["false_alert_rate"].append(policy["false_alert_rate"])
         metrics_samples["alerts_per_patient_day"].append(burden["alerts_per_patient_day"])
 
+        # Save progress periodically so a crash does not lose all completed work.
         if checkpoint_path and (i + 1) % args.checkpoint_every == 0:
             checkpoint_path.write_text(
                 json.dumps(
@@ -237,6 +279,7 @@ def main() -> None:
                 encoding="utf-8",
             )
 
+    # Summarize: for each metric, compute the mean and 95% CI from all bootstrap values.
     summary = {k: bootstrap_ci(v) for k, v in metrics_samples.items()}
     summary["n_bootstrap"] = args.n_bootstrap
     summary["max_patients"] = args.max_patients
